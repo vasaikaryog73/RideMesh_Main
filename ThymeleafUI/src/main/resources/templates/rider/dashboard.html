@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RideMesh - Rider Dashboard</title>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet Maps CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-card {
+            background: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .search-radar {
+            border: 3px solid rgba(99, 102, 241, 0.1);
+            border-top: 3px solid #6366f1;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            animation: spin 1.5s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex">
+
+    <!-- Sidebar fragment injection -->
+    <div th:replace="~{fragments/navigation :: sidebar('book', ${currentUser})}"></div>
+
+    <div class="flex-grow flex flex-col min-h-screen">
+        <!-- Top Navbar fragment injection -->
+        <header th:replace="~{fragments/navigation :: navbar(${currentUser})}"></header>
+
+        <main class="flex-grow p-8 flex items-start justify-center relative overflow-hidden">
+            <div class="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600 rounded-full filter blur-3xl opacity-10 animate-pulse"></div>
+            
+            <div class="w-full max-w-2xl relative z-10 space-y-6">
+
+                <!-- Alert Message for Booking Errors -->
+                <div th:if="${bookingError != null}" class="p-4 rounded-xl bg-rose-950/50 border border-rose-500/30 text-rose-400 text-sm text-center shadow-lg">
+                    <span th:text="${bookingError}">Error message</span>
+                </div>
+
+                <!-- VIEW A: Ride Booking Form (when no active request and no active ride exists) -->
+                <div th:if="${activeRequest == null && activeRide == null}" class="glass-card p-8 rounded-2xl shadow-2xl space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-950 pb-4 gap-4">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-10 h-10 rounded-lg bg-indigo-600/20 flex items-center justify-center text-indigo-400 text-lg"><i class="fa-solid fa-map-location-dot"></i></div>
+                            <div>
+                                <h2 class="text-xl font-bold text-white">Book a Ride</h2>
+                                <p class="text-xs text-gray-400">Request a RideMesh driver instantly. Wallet: <span class="text-emerald-400 font-semibold" th:text="'₹' + ${wallet != null && wallet.balance != null ? #numbers.formatDecimal(wallet.balance, 1, 2) : '0.00'}">₹0.00</span></p>
+                            </div>
+                        </div>
+                        <!-- Schedule a Driver Option Button -->
+                        <button type="button" onclick="showNotImplementedModal(event)" class="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-500 text-xs font-semibold transition">
+                            <i class="fa-regular fa-calendar-check"></i>
+                            <span>Schedule a Driver</span>
+                        </button>
+                    </div>
+
+                    <form th:action="@{/rider/requestRide}" method="POST" onsubmit="return showNotImplementedModal(event)" class="space-y-6">
+                        <!-- Pickup Location Inputs -->
+                        <div class="space-y-3">
+                            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">1. Pickup Location</span>
+                            <div class="relative">
+                                <label class="text-[10px] text-gray-400 block mb-1">From (Pickup Address)</label>
+                                <input type="text" id="pickup-search" autocomplete="off" placeholder="Search pickup location..."
+                                       class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-2.5 text-white text-sm focus:outline-none transition">
+                                <div id="pickup-suggestions" class="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-gray-900 border border-gray-800 rounded-lg shadow-2xl z-50 hidden text-xs divide-y divide-gray-850"></div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-gray-400 block mb-1">Pickup Map</label>
+                                <div id="pickup-map" class="h-48 w-full rounded-lg border border-gray-900 overflow-hidden relative z-10"></div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-[10px] text-gray-400 block mb-1">Pickup Latitude (Optional)</label>
+                                    <input type="number" id="pickup-lat" name="pickupLat" step="any" required value="19.0760"
+                                           class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-2.5 text-white text-sm focus:outline-none transition">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-gray-400 block mb-1">Pickup Longitude (Optional)</label>
+                                    <input type="number" id="pickup-lng" name="pickupLng" step="any" required value="72.8777"
+                                           class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-2.5 text-white text-sm focus:outline-none transition">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dropoff Location Inputs -->
+                        <div class="space-y-3">
+                            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">2. Dropoff Location</span>
+                            <div class="relative">
+                                <label class="text-[10px] text-gray-400 block mb-1">To (Dropoff Address)</label>
+                                <input type="text" id="dropoff-search" autocomplete="off" placeholder="Search dropoff location..."
+                                       class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-2.5 text-white text-sm focus:outline-none transition">
+                                <div id="dropoff-suggestions" class="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-gray-900 border border-gray-800 rounded-lg shadow-2xl z-50 hidden text-xs divide-y divide-gray-850"></div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-gray-400 block mb-1">Dropoff Map</label>
+                                <div id="dropoff-map" class="h-48 w-full rounded-lg border border-gray-900 overflow-hidden relative z-10"></div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-[10px] text-gray-400 block mb-1">Dropoff Latitude (Optional)</label>
+                                    <input type="number" id="dropoff-lat" name="dropoffLat" step="any" required value="19.1200"
+                                           class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-2.5 text-white text-sm focus:outline-none transition">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-gray-400 block mb-1">Dropoff Longitude (Optional)</label>
+                                    <input type="number" id="dropoff-lng" name="dropoffLng" step="any" required value="72.9000"
+                                           class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-2.5 text-white text-sm focus:outline-none transition">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Vehicle Preference Selector -->
+                        <div class="space-y-3">
+                            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">3. Vehicle Preference</span>
+                            <div>
+                                <select name="vehicleType" required
+                                        class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-2.5 text-white text-sm focus:outline-none transition">
+                                    <option value="car">Car (Up to 50 km)</option>
+                                    <option value="6 seater van">6 Seater Van (Up to 50 km)</option>
+                                    <option value="8 seater van">8 Seater Van (Up to 50 km)</option>
+                                    <option value="bike">Bike (Up to 15 km)</option>
+                                    <option value="scooter">Scooter (Up to 15 km)</option>
+                                    <option value="rickshaw">Rickshaw (Up to 5 km)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Payment Method Selector -->
+                        <div class="space-y-3">
+                            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">4. Payment Preference</span>
+                            <div>
+                                <select name="paymentMethod" required
+                                        class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-2.5 text-white text-sm focus:outline-none transition">
+                                    <option value="WALLET">Wallet Balance</option>
+                                    <option value="CASH">Cash Payment</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Booking Submit -->
+                        <button type="submit"
+                                class="w-full py-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition shadow-lg hover:scale-[1.01]">
+                            Request Ride Mesh
+                        </button>
+                    </form>
+                </div>
+
+                <!-- VIEW B: Ride Search Status Screen (when active request exists) -->
+                <div th:if="${activeRequest != null}" class="glass-card p-8 rounded-2xl shadow-2xl text-center space-y-8">
+                    <!-- Rotating Radar Spinner -->
+                    <div class="relative flex items-center justify-center h-24">
+                        <div class="search-radar"></div>
+                        <div class="absolute w-12 h-12 bg-indigo-500/10 border border-indigo-500/30 rounded-full flex items-center justify-center text-indigo-400 text-lg">
+                            <i class="fa-solid fa-car"></i>
+                        </div>
+                    </div>
+
+                    <!-- Search Header -->
+                    <div class="space-y-2">
+                        <h2 class="text-2xl font-bold text-white">Searching for Drivers</h2>
+                        <p class="text-xs text-gray-400">Connecting your booking request with nearby available drivers...</p>
+                        
+                        <!-- Search Countdown Timer -->
+                        <div class="mt-4 inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold">
+                            <i class="fa-regular fa-clock"></i>
+                            <span>Time remaining: <span id="countdown-timer">05:00</span></span>
+                        </div>
+                    </div>
+
+                    <!-- Details Card -->
+                    <div class="p-6 rounded-xl bg-gray-900/40 border border-gray-900 text-left space-y-4 text-xs">
+                        <div class="flex justify-between border-b border-gray-950 pb-2">
+                            <span class="text-gray-500">Request ID</span>
+                            <span class="font-mono text-indigo-400 font-bold" th:text="'#' + ${activeRequest.id}">#12</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-950 pb-2">
+                            <span class="text-gray-500">Pickup Location</span>
+                            <span id="pickup-location-display" class="text-white font-medium text-right max-w-[65%] break-words"
+                                  th:data-lat="${activeRequest.pickUpLocation != null && activeRequest.pickUpLocation.coordinates != null && activeRequest.pickUpLocation.coordinates.length > 1 ? activeRequest.pickUpLocation.coordinates[1] : 0.0}"
+                                  th:data-lng="${activeRequest.pickUpLocation != null && activeRequest.pickUpLocation.coordinates != null && activeRequest.pickUpLocation.coordinates.length > 0 ? activeRequest.pickUpLocation.coordinates[0] : 0.0}"
+                                  th:text="${activeRequest.pickUpLocation != null && activeRequest.pickUpLocation.coordinates != null && activeRequest.pickUpLocation.coordinates.length > 1 ? activeRequest.pickUpLocation.coordinates[1] + ', ' + activeRequest.pickUpLocation.coordinates[0] : 'N/A'}">19.076, 72.877</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-950 pb-2">
+                            <span class="text-gray-500">Dropoff Location</span>
+                            <span id="dropoff-location-display" class="text-white font-medium text-right max-w-[65%] break-words"
+                                  th:data-lat="${activeRequest.dropOffLocation != null && activeRequest.dropOffLocation.coordinates != null && activeRequest.dropOffLocation.coordinates.length > 1 ? activeRequest.dropOffLocation.coordinates[1] : 0.0}"
+                                  th:data-lng="${activeRequest.dropOffLocation != null && activeRequest.dropOffLocation.coordinates != null && activeRequest.dropOffLocation.coordinates.length > 0 ? activeRequest.dropOffLocation.coordinates[0] : 0.0}"
+                                  th:text="${activeRequest.dropOffLocation != null && activeRequest.dropOffLocation.coordinates != null && activeRequest.dropOffLocation.coordinates.length > 1 ? activeRequest.dropOffLocation.coordinates[1] + ', ' + activeRequest.dropOffLocation.coordinates[0] : 'N/A'}">19.120, 72.900</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-950 pb-2">
+                            <span class="text-gray-500">Payment Option</span>
+                            <span class="text-white font-semibold" th:text="${activeRequest.paymentMethod}">WALLET</span>
+                        </div>
+                        <div class="flex justify-between pt-2">
+                            <span class="text-gray-500 text-sm">Calculated Fare</span>
+                            <span class="text-sm text-emerald-400 font-extrabold" th:text="'₹' + ${activeRequest.fare != null ? #numbers.formatDecimal(activeRequest.fare, 1, 2) : '0.00'}">₹18.50</span>
+                        </div>
+                    </div>
+
+                    <!-- Cancel / Reset Search -->
+                    <form th:action="@{/rider/cancelRequest}" method="POST" id="cancel-search-form">
+                        <button type="submit"
+                                class="w-full py-3 rounded-lg bg-red-600 hover:bg-red-700 border border-red-600 text-white font-semibold text-sm transition btn-cancel shadow-md hover:shadow-lg">
+                            Cancel Ride Search
+                        </button>
+                    </form>
+                </div>
+
+                <!-- VIEW C: Active Ride Screen (when active ride exists) -->
+                <div th:if="${activeRide != null}" class="glass-card p-8 rounded-2xl shadow-2xl text-center space-y-8">
+                    <!-- Heading -->
+                    <div class="space-y-2">
+                        <h2 class="text-2xl font-bold text-indigo-400">Driver Allotted &amp; En Route</h2>
+                        <p class="text-xs text-gray-400">Your ride is currently active. Meet your driver at the pickup location.</p>
+                    </div>
+
+                    <!-- Driver Card -->
+                    <div class="p-6 rounded-xl bg-gray-900/60 border border-gray-800 text-left space-y-4">
+                        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider block border-b border-gray-950 pb-2">Driver &amp; Vehicle Details</span>
+                        <div class="grid grid-cols-2 gap-4 text-xs">
+                            <div class="space-y-1">
+                                <span class="text-gray-500 block">Driver Name</span>
+                                <span class="text-white font-medium block" th:text="${activeRide.driver != null && activeRide.driver.user != null ? activeRide.driver.user.name : 'Driver Assigned'}">John Doe</span>
+                            </div>
+                            <div class="space-y-1">
+                                <span class="text-gray-500 block">Driver Phone</span>
+                                <span class="text-white font-medium block font-mono" th:text="${activeRide.driver != null ? activeRide.driver.phoneNumber : 'N/A'}">+919876543210</span>
+                            </div>
+                            <div class="space-y-1">
+                                <span class="text-gray-500 block">Vehicle Type &amp; Model</span>
+                                <span class="text-white font-medium block capitalize" th:text="${(activeRide.vehicleType != null ? activeRide.vehicleType : 'Car') + (activeRide.driver != null && activeRide.driver.vehicleId != null ? ' - ' + activeRide.driver.vehicleId : '')}">Car - 12345</span>
+                            </div>
+                            <div class="space-y-1">
+                                <span class="text-gray-500 block">Driver Rating</span>
+                                <span class="text-amber-400 font-bold block">
+                                    <i class="fa-solid fa-star text-amber-500 mr-1"></i>
+                                    <span th:text="${activeRide.driver != null && activeRide.driver.rating != null ? (activeRide.driver.rating == 0.0 ? 'New Driver' : #numbers.formatDecimal(activeRide.driver.rating, 1, 1)) : 'New Driver'}">4.5</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Details Card -->
+                    <div class="p-6 rounded-xl bg-gray-900/40 border border-gray-900 text-left space-y-4 text-xs">
+                        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider block border-b border-gray-950 pb-2">Ride Info</span>
+                        <div class="flex justify-between border-b border-gray-950 pb-2">
+                            <span class="text-gray-500">Ride ID</span>
+                            <span class="font-mono text-indigo-400 font-bold" th:text="'#' + ${activeRide.id}">#12</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-950 pb-2">
+                            <span class="text-gray-500">Pickup Location</span>
+                            <span id="pickup-location-display" class="text-white font-medium text-right max-w-[65%] break-words"
+                                  th:data-lat="${activeRide.pickUpLocation != null && activeRide.pickUpLocation.coordinates != null && activeRide.pickUpLocation.coordinates.length > 1 ? activeRide.pickUpLocation.coordinates[1] : 0.0}"
+                                  th:data-lng="${activeRide.pickUpLocation != null && activeRide.pickUpLocation.coordinates != null && activeRide.pickUpLocation.coordinates.length > 0 ? activeRide.pickUpLocation.coordinates[0] : 0.0}"
+                                  th:text="${activeRide.pickUpLocation != null && activeRide.pickUpLocation.coordinates != null && activeRide.pickUpLocation.coordinates.length > 1 ? activeRide.pickUpLocation.coordinates[1] + ', ' + activeRide.pickUpLocation.coordinates[0] : 'N/A'}">19.076, 72.877</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-950 pb-2">
+                            <span class="text-gray-500">Dropoff Location</span>
+                            <span id="dropoff-location-display" class="text-white font-medium text-right max-w-[65%] break-words"
+                                  th:data-lat="${activeRide.dropOffLocation != null && activeRide.dropOffLocation.coordinates != null && activeRide.dropOffLocation.coordinates.length > 1 ? activeRide.dropOffLocation.coordinates[1] : 0.0}"
+                                  th:data-lng="${activeRide.dropOffLocation != null && activeRide.dropOffLocation.coordinates != null && activeRide.dropOffLocation.coordinates.length > 0 ? activeRide.dropOffLocation.coordinates[0] : 0.0}"
+                                  th:text="${activeRide.dropOffLocation != null && activeRide.dropOffLocation.coordinates != null && activeRide.dropOffLocation.coordinates.length > 1 ? activeRide.dropOffLocation.coordinates[1] + ', ' + activeRide.dropOffLocation.coordinates[0] : 'N/A'}">19.120, 72.900</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-950 pb-2">
+                            <span class="text-gray-500">Payment Option</span>
+                            <span class="text-white font-semibold" th:text="${activeRide.paymentMethod}">WALLET</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-950 pb-2">
+                            <span class="text-gray-500">Ride Status</span>
+                            <span class="text-indigo-400 font-bold" th:text="${activeRide.status}">ONGOING</span>
+                        </div>
+                        <div class="flex justify-between pt-2">
+                            <span class="text-gray-500 text-sm">Fare Price</span>
+                            <span class="text-sm text-emerald-400 font-extrabold" th:text="'₹' + ${activeRide.fare != null ? #numbers.formatDecimal(activeRide.fare, 1, 2) : '0.00'}">₹18.50</span>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="space-y-4">
+                        <!-- Complete Ride Button (Only for WALLET payments) -->
+                        <form th:if="${#strings.toString(activeRide.paymentMethod) == 'WALLET'}" 
+                              th:action="@{/rider/completeRide/{id}(id=${activeRide.id})}" method="POST" onsubmit="return showNotImplementedModal(event)">
+                            <button type="submit" th:disabled="${activeRide.riderCompleted == true}"
+                                    class="w-full py-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition shadow-lg hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span th:text="${activeRide.riderCompleted == true ? 'Waiting for Driver Confirmation...' : 'Confirm Ride Completion'}">Confirm Ride Completion</span>
+                            </button>
+                        </form>
+                        
+                        <div th:if="${#strings.toString(activeRide.paymentMethod) == 'CASH'}" 
+                             class="p-3.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold">
+                            <i class="fa-solid fa-money-bill-wave text-emerald-600 mr-1"></i> Cash Payment: Driver will confirm completion and record the transaction.
+                        </div>
+
+                        <!-- Cancel Ride Button -->
+                        <form th:action="@{/rider/cancelRide/{id}(id=${activeRide.id})}" method="POST" onsubmit="return showNotImplementedModal(event)">
+                            <button type="submit"
+                                    class="w-full py-3 rounded-lg bg-red-600 hover:bg-red-700 border border-red-600 text-white font-semibold text-sm transition btn-cancel shadow-md hover:shadow-lg">
+                                Cancel Ride
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <footer class="text-center py-6 text-xs text-gray-600 border-t border-gray-950">
+            &copy; 2026 RideMesh Systems Inc. All rights reserved.
+        </footer>
+    </div>
+
+    <!-- Script triggers -->
+    <div th:replace="~{fragments/navigation :: navigationScripts}"></div>
+
+    <!-- Map & Booking Scripts (Only active when in Booking View) -->
+    <script th:if="${activeRequest == null && activeRide == null}">
+        document.addEventListener("DOMContentLoaded", function() {
+            const pickupMapEl = document.getElementById('pickup-map');
+            const dropoffMapEl = document.getElementById('dropoff-map');
+            if (!pickupMapEl || !dropoffMapEl) return;
+
+            // 1. Initialize maps
+            const initialPickup = [19.0760, 72.8777];
+            const initialDropoff = [19.1200, 72.9000];
+
+            const pickupMap = L.map('pickup-map').setView(initialPickup, 13);
+            const dropoffMap = L.map('dropoff-map').setView(initialDropoff, 13);
+
+            // Add OpenStreetMap Tile Layers
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(pickupMap);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(dropoffMap);
+
+            // Add markers
+            const pickupMarker = L.marker(initialPickup, { draggable: true }).addTo(pickupMap);
+            const dropoffMarker = L.marker(initialDropoff, { draggable: true }).addTo(dropoffMap);
+
+            // 2. Synchronizers: Map interaction -> Coordinates & Address
+            function updatePickupLocation(lat, lng, doReverseGeocode = true) {
+                const latEl = document.getElementById('pickup-lat');
+                const lngEl = document.getElementById('pickup-lng');
+                if (latEl) latEl.value = lat.toFixed(6);
+                if (lngEl) lngEl.value = lng.toFixed(6);
+                pickupMarker.setLatLng([lat, lng]);
+                pickupMap.panTo([lat, lng]);
+                
+                if (doReverseGeocode) {
+                    reverseGeocode(lat, lng, 'pickup-search');
+                }
+            }
+
+            function updateDropoffLocation(lat, lng, doReverseGeocode = true) {
+                const latEl = document.getElementById('dropoff-lat');
+                const lngEl = document.getElementById('dropoff-lng');
+                if (latEl) latEl.value = lat.toFixed(6);
+                if (lngEl) lngEl.value = lng.toFixed(6);
+                dropoffMarker.setLatLng([lat, lng]);
+                dropoffMap.panTo([lat, lng]);
+
+                if (doReverseGeocode) {
+                    reverseGeocode(lat, lng, 'dropoff-search');
+                }
+            }
+
+            // Dragend handlers
+            pickupMarker.on('dragend', function(e) {
+                const position = pickupMarker.getLatLng();
+                updatePickupLocation(position.lat, position.lng);
+            });
+
+            dropoffMarker.on('dragend', function(e) {
+                const position = dropoffMarker.getLatLng();
+                updateDropoffLocation(position.lat, position.lng);
+            });
+
+            // Map click handlers
+            pickupMap.on('click', function(e) {
+                updatePickupLocation(e.latlng.lat, e.latlng.lng);
+            });
+
+            dropoffMap.on('click', function(e) {
+                updateDropoffLocation(e.latlng.lat, e.latlng.lng);
+            });
+
+            // 3. Manual coordinates change synchronizer
+            function setupCoordsInputSync(latId, lngId, updateFn) {
+                const latInput = document.getElementById(latId);
+                const lngInput = document.getElementById(lngId);
+                if (!latInput || !lngInput) return;
+
+                function onInput() {
+                    const lat = parseFloat(latInput.value);
+                    const lng = parseFloat(lngInput.value);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        updateFn(lat, lng, false);
+                    }
+                }
+                latInput.addEventListener('input', onInput);
+                lngInput.addEventListener('input', onInput);
+            }
+
+            setupCoordsInputSync('pickup-lat', 'pickup-lng', updatePickupLocation);
+            setupCoordsInputSync('dropoff-lat', 'dropoff-lng', updateDropoffLocation);
+
+            // 4. Reverse Geocoding via Nominatim
+            function reverseGeocode(lat, lng, targetInputId) {
+                const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
+                fetch(url)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.display_name) {
+                            const targetEl = document.getElementById(targetInputId);
+                            if (targetEl) targetEl.value = data.display_name;
+                        }
+                    })
+                    .catch(err => console.error("Reverse geocoding error:", err));
+            }
+
+            // 5. Autocomplete address search via Nominatim
+            function setupAutocomplete(inputId, suggestionsId, updateFn) {
+                const input = document.getElementById(inputId);
+                const suggestions = document.getElementById(suggestionsId);
+                if (!input || !suggestions) return;
+                let debounceTimer;
+
+                input.addEventListener('input', function() {
+                    clearTimeout(debounceTimer);
+                    const query = input.value.trim();
+                    if (query.length < 3) {
+                        suggestions.classList.add('hidden');
+                        return;
+                    }
+
+                    debounceTimer = setTimeout(() => {
+                        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(query)}`;
+                        fetch(url)
+                            .then(res => res.json())
+                            .then(data => {
+                                suggestions.innerHTML = '';
+                                if (!data || data.length === 0) {
+                                    suggestions.classList.add('hidden');
+                                    return;
+                                }
+
+                                data.forEach(item => {
+                                    const div = document.createElement('div');
+                                    div.className = "px-3 py-2 hover:bg-gray-800 text-white cursor-pointer transition-colors";
+                                    div.innerText = item.display_name;
+                                    div.addEventListener('click', function() {
+                                        input.value = item.display_name;
+                                        suggestions.classList.add('hidden');
+                                        const lat = parseFloat(item.lat);
+                                        const lon = parseFloat(item.lon);
+                                        updateFn(lat, lon, false);
+                                    });
+                                    suggestions.appendChild(div);
+                                });
+                                suggestions.classList.remove('hidden');
+                            })
+                            .catch(err => console.error("Search autocomplete error:", err));
+                    }, 400); // 400ms debounce
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (e.target !== input && e.target !== suggestions) {
+                        suggestions.classList.add('hidden');
+                    }
+                });
+            }
+
+            setupAutocomplete('pickup-search', 'pickup-suggestions', updatePickupLocation);
+            setupAutocomplete('dropoff-search', 'dropoff-suggestions', updateDropoffLocation);
+
+            // Initial geocode
+            reverseGeocode(initialPickup[0], initialPickup[1], 'pickup-search');
+            reverseGeocode(initialDropoff[0], initialDropoff[1], 'dropoff-search');
+            
+            setTimeout(() => {
+                pickupMap.invalidateSize();
+                dropoffMap.invalidateSize();
+            }, 200);
+        });
+    </script>
+
+    <!-- Geocoding for Active Search or Active Ride Views -->
+    <script th:if="${activeRequest != null || activeRide != null}">
+        document.addEventListener("DOMContentLoaded", function() {
+            function reverseGeocodeActive(lat, lng, element) {
+                const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
+                fetch(url)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.display_name) {
+                            const formattedCoords = `(${parseFloat(lat).toFixed(6)}, ${parseFloat(lng).toFixed(6)})`;
+                            element.innerText = `${data.display_name} ${formattedCoords}`;
+                        }
+                    })
+                    .catch(err => console.error("Geocoding error:", err));
+            }
+
+            const pickupEl = document.getElementById('pickup-location-display');
+            const dropoffEl = document.getElementById('dropoff-location-display');
+
+            if (pickupEl) {
+                const lat = pickupEl.getAttribute('data-lat');
+                const lng = pickupEl.getAttribute('data-lng');
+                if (lat && lng && parseFloat(lat) !== 0.0) {
+                    reverseGeocodeActive(lat, lng, pickupEl);
+                }
+            }
+
+            if (dropoffEl) {
+                const lat = dropoffEl.getAttribute('data-lat');
+                const lng = dropoffEl.getAttribute('data-lng');
+                if (lat && lng && parseFloat(lat) !== 0.0) {
+                    reverseGeocodeActive(lat, lng, dropoffEl);
+                }
+            }
+        });
+    </script>
+
+    <!-- Countdown Timer Script (Only when searching for drivers) -->
+    <script th:if="${activeRequest != null}" th:inline="javascript">
+        document.addEventListener("DOMContentLoaded", function() {
+            const timerElement = document.getElementById("countdown-timer");
+            if (timerElement) {
+                let remainingSeconds = /*[[${remainingSeconds != null ? remainingSeconds : 300}]]*/ 300;
+                
+                function formatTimer(sec) {
+                    const m = Math.floor(sec / 60);
+                    const s = sec % 60;
+                    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                }
+                
+                timerElement.innerText = formatTimer(remainingSeconds);
+                
+                const interval = setInterval(function() {
+                    remainingSeconds--;
+                    if (remainingSeconds <= 0) {
+                        clearInterval(interval);
+                        timerElement.innerText = "00:00";
+                        const cancelForm = document.getElementById("cancel-search-form");
+                        if (cancelForm) {
+                            cancelForm.submit();
+                        } else {
+                            window.location.reload();
+                        }
+                    } else {
+                        timerElement.innerText = formatTimer(remainingSeconds);
+                    }
+                }, 1000);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+com\project\ridemesh\services\implementations\EmailSenderServiceImpl.class
+com\project\ridemesh\NotifyServiceApplication.class
+com\project\ridemesh\config\TemplateDatabaseSeeder.class
+com\project\ridemesh\kafka\NotificationConsumer.class
+com\project\ridemesh\services\EmailSenderService.class
+com\project\ridemesh\controllers\TestNotificationController.class
+com\project\ridemesh\entities\NotificationTemplate.class
+com\project\ridemesh\entities\NotificationLog.class
+com\project\ridemesh\repositories\NotificationLogRepository.class
+com\project\ridemesh\repositories\NotificationTemplateRepository.class
