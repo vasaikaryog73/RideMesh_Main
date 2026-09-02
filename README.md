@@ -8,6 +8,9 @@
 **A064 - Yog Vasaikar - 70612500073** <br />
 **A067 - Sumukh Kanekar - 70612500076** <br />
 
+<img width="1917" height="927" alt="image" src="https://github.com/user-attachments/assets/c37a9483-9d63-495a-bab5-52c2a88a89e2" />
+
+
 ---
 
 ## 1. Microservices Breakdown
@@ -27,6 +30,15 @@
 ## 2. Event-Driven Communication via Apache Kafka
 
 ![RideMesh Microservices Architecture & Event Flow](https://res.cloudinary.com/dvb5mesnd/image/upload/v1788312748/Screenshot_2026-09-02_070034_jfolav.png)
+
+
+### Kafka Setup
+
+# 1. Pull latest image from Docker Hub
+docker pull apache/kafka:latest
+
+# 2. Run Kafka container in KRaft mode on port 9092
+docker run -d --name kafka -p 9092:9092 apache/kafka:latest
 
 
 ---
@@ -119,3 +131,60 @@ cd ThymeleafUI && ..\mvnw.cmd spring-boot:run
 ### Step 3: Access Application
 - **RideMesh App**: [http://localhost:8085](http://localhost:8085)
 - **Eureka Registry Dashboard**: [http://localhost:8761](http://localhost:8761)
+
+
+---
+
+## 7. Application UI images
+
+### Auth Pages :
+
+<img width="1917" height="930" alt="image" src="https://github.com/user-attachments/assets/8164da9d-811a-4b5d-b7ee-15b7287c2e69" />
+
+<img width="1917" height="928" alt="image" src="https://github.com/user-attachments/assets/83703d13-53a0-4798-b05b-12bc893fde7e" />
+
+<img width="1916" height="932" alt="image" src="https://github.com/user-attachments/assets/7cee5907-cb29-4ac7-a1b7-1d9a5f6b8609" />
+
+
+### Rider Dashboard :
+
+<img width="1916" height="927" alt="image" src="https://github.com/user-attachments/assets/f3afcb5c-9694-4417-be42-ccc590ad6746" />
+
+<img width="1917" height="925" alt="image" src="https://github.com/user-attachments/assets/005d42fd-b6c0-4c76-81f5-adaff9ab8f73" />
+
+<img width="1917" height="927" alt="image" src="https://github.com/user-attachments/assets/8fd1c895-0e48-4edf-99cc-525998e824a4" />
+
+<img width="1917" height="928" alt="image" src="https://github.com/user-attachments/assets/b144f4f6-538d-4b70-af9b-eb8b227f4a7a" />
+
+<img width="1917" height="927" alt="image" src="https://github.com/user-attachments/assets/3e4bef2d-f134-4435-9eee-15bf2be3c3d4" />
+
+<img width="1917" height="928" alt="image" src="https://github.com/user-attachments/assets/0498ed19-33ec-4f59-b5ba-290b9e61a48b" />
+
+
+### Driver Dashboard :
+
+<img width="1917" height="927" alt="image" src="https://github.com/user-attachments/assets/fe2a9442-9a37-4d2f-a736-57b03d948064" />
+
+<img width="1917" height="925" alt="image" src="https://github.com/user-attachments/assets/a17f5850-2cea-4264-aeb7-ea6f8a5fb08e" />
+
+<img width="1917" height="927" alt="image" src="https://github.com/user-attachments/assets/594d7a8e-fe6d-4092-9636-885a310053e4" />
+
+
+### Admin Dashboard :
+
+Admin Login Page : http://localhost:8085/admin-login
+Admin Email : admin@ridemesh.com
+Admin Password : AdminPass123
+
+<img width="1917" height="927" alt="image" src="https://github.com/user-attachments/assets/f0c2f42d-9415-495b-89df-2c1d94c0a226" />
+
+<img width="1917" height="927" alt="image" src="https://github.com/user-attachments/assets/a2f331ed-ffd8-4998-9490-7535d72defc6" />
+
+<img width="1917" height="925" alt="image" src="https://github.com/user-attachments/assets/578130dd-91d3-456c-acc2-f92d3e152264" />
+
+
+
+
+
+
+
