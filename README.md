@@ -34,10 +34,10 @@
 
 ### Kafka Setup
 
-# 1. Pull latest image from Docker Hub
+#### 1. Pull latest image from Docker Hub
 docker pull apache/kafka:latest
 
-# 2. Run Kafka container in KRaft mode on port 9092
+#### 2. Run Kafka container in KRaft mode on port 9092
 docker run -d --name kafka -p 9092:9092 apache/kafka:latest
 
 
