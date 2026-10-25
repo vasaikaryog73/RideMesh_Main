@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RideMesh - Profile</title>
     <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
         body {
-            background-color: #f8fafc;
-            color: #0f172a;
+            background-color: var(--color-bg, #ffffff);
+            color: var(--color-text, #0f172a);
             font-family: 'Inter', sans-serif;
         }
         .glass-card {
@@ -21,80 +21,929 @@
             border: 1px solid rgba(0, 0, 0, 0.08);
             box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
         }
+        /* Custom iOS-style Availability Toggle Switch */
+        .availability-switch {
+            position: relative;
+            display: inline-block;
+            width: 58px;
+            height: 32px;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+        .availability-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute;
+        }
+        .availability-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #94a3b8; /* slate-400 */
+            transition: all 0.3s ease;
+            border-radius: 34px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+        .availability-slider:before {
+            position: absolute;
+            content: "";
+            height: 24px;
+            width: 24px;
+            left: 4px;
+            bottom: 4px;
+            background-color: #ffffff;
+            transition: all 0.3s ease;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        .availability-switch input:checked + .availability-slider {
+            background-color: #10b981; /* emerald-500 */
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+        }
+        .availability-switch input:checked + .availability-slider:before {
+            transform: translateX(26px);
+        }
     </style>
+    <!-- Include Theme Styles in head for instant theme rendering without flicker -->
+    <th:block th:replace="~{fragments/navigation :: themeStyles}"></th:block>
 </head>
-<body class="min-h-screen flex">
+<body class="min-h-screen flex flex-col lg:flex-row w-full overflow-x-hidden">
 
     <!-- Sidebar fragment injection -->
     <div th:replace="~{fragments/navigation :: sidebar('profile', ${currentUser})}"></div>
 
-    <div class="flex-grow flex flex-col min-h-screen">
+    <div class="flex-1 flex flex-col min-h-screen w-full min-w-0">
         <!-- Top Navbar fragment injection -->
         <header th:replace="~{fragments/navigation :: navbar(${currentUser})}"></header>
 
         <!-- Profile Settings View -->
-        <main class="flex-grow p-8 flex items-start justify-center relative overflow-hidden">
+        <main class="flex-grow p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 relative overflow-hidden">
             <div class="absolute -top-40 -left-40 w-96 h-96 bg-purple-600 rounded-full filter blur-3xl opacity-5 animate-pulse"></div>
             
-            <div class="glass-card w-full max-w-2xl p-8 rounded-2xl shadow-2xl relative z-10 space-y-6">
-                <!-- User Profile Header -->
-                <div class="flex items-center space-x-6 pb-6 border-b border-slate-200">
-                    <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center font-bold text-white text-3xl shadow-xl border border-purple-400/20"
-                         th:text="${#strings.isEmpty(currentUser.name) ? 'U' : #strings.substring(currentUser.name, 0, 1).toUpperCase()}">
-                        U
-                    </div>
-                    <div>
-                        <h1 class="text-2xl font-bold text-slate-900" th:text="${currentUser.name}">John Doe</h1>
-                        <span class="text-sm text-purple-600 font-medium capitalize" th:text="${#strings.listJoin(currentUser.roles, ', ')}">RIDER</span>
-                    </div>
+            <div class="glass-card w-full p-4 sm:p-6 lg:p-8 rounded-2xl shadow-2xl relative z-10 space-y-6 sm:space-y-8">
+                <!-- Alerts -->
+                <div th:if="${profileSuccess}" class="bg-emerald-100 border border-emerald-300 text-emerald-800 text-sm p-4 rounded-xl flex items-center space-x-3">
+                    <i class="fa-solid fa-circle-check text-emerald-600 text-lg"></i>
+                    <span th:text="${profileSuccess}"></span>
+                </div>
+                <div th:if="${profileError}" class="bg-rose-100 border border-rose-300 text-rose-800 text-sm p-4 rounded-xl flex items-center space-x-3">
+                    <i class="fa-solid fa-triangle-exclamation text-rose-600 text-lg"></i>
+                    <span th:text="${profileError}"></span>
                 </div>
 
-                <!-- Account Information Details -->
-                <div class="space-y-4">
-                    <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Account Specifications</h3>
+                <!-- Missing Phone Alert Banner -->
+                <div th:if="${currentUser.phoneNumber == null or #strings.isEmpty(currentUser.phoneNumber)}" class="bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs p-4 rounded-xl mb-6 flex items-center space-x-3">
+                    <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                    <span><strong>Phone Number Required:</strong> Please provide your mobile number below to book rides and access driver features.</span>
+                </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                            <span class="text-xs text-slate-400 block mb-1">User ID</span>
-                            <span class="text-sm font-semibold text-slate-900" th:text="${currentUser.id}">123</span>
+                <!-- Profile Header & Edit Form -->
+                <form th:action="@{/profile/update}" method="POST" enctype="multipart/form-data" class="space-y-6">
+                    <div class="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6 pb-6 border-b border-slate-200 dark:border-zinc-800">
+                        <!-- Avatar with Camera Badge -->
+                        <div class="relative group cursor-pointer shrink-0">
+                            <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-orange-500/30 shadow-xl bg-orange-500 flex items-center justify-center">
+                                <img id="profile-pfp-preview" 
+                                     th:src="${currentUser.profilePictureUrl != null and !#strings.isEmpty(currentUser.profilePictureUrl) ? currentUser.profilePictureUrl : 'https://res.cloudinary.com/domckasfk/image/upload/v1774786542/mediscan/reports/ygnjdwtvacvw6rrzmumc.jpg'}" 
+                                     alt="Profile Picture" 
+                                     class="w-full h-full object-cover">
+                            </div>
+                            <label for="pfpFile" class="absolute inset-0 bg-black/40 rounded-full flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                <i class="fa-solid fa-camera text-xl mb-1"></i>
+                                <span class="text-[10px] font-semibold uppercase">Change</span>
+                                <input type="file" id="pfpFile" name="pfpFile" accept="image/*" class="hidden" onchange="previewProfilePhoto(this)">
+                            </label>
                         </div>
 
-                        <div class="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                            <span class="text-xs text-slate-400 block mb-1">Email Address</span>
-                            <span class="text-sm font-semibold text-slate-900" th:text="${currentUser.email}">user@domain.com</span>
-                        </div>
-
-                        <div class="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                            <span class="text-xs text-slate-400 block mb-1">Verification Status</span>
-                            <span class="text-sm font-semibold text-emerald-600 flex items-center space-x-2" th:if="${currentUser.emailVerified}">
-                                <i class="fa-solid fa-circle-check text-emerald-500"></i> <span>Verified Account</span>
-                            </span>
-                            <span class="text-sm font-semibold text-amber-600 flex items-center space-x-2" th:unless="${currentUser.emailVerified}">
-                                <i class="fa-solid fa-circle-exclamation text-amber-500"></i> <span>Unverified Account</span>
-                            </span>
-                        </div>
-
-                        <div class="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                            <span class="text-xs text-slate-400 block mb-1">Status Type</span>
-                            <span class="text-sm font-semibold text-slate-900">Active</span>
+                        <div class="text-center sm:text-left flex-grow">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white" th:text="${currentUser.name}">John Doe</h1>
+                                    <div class="flex items-center gap-2 mt-0.5">
+                                        <p class="text-sm font-mono text-orange-500 font-semibold" th:text="${'@' + (currentUser.username != null ? currentUser.username : 'user#00000')}">@username#12345</p>
+                                        <span class="text-slate-300 dark:text-zinc-700">•</span>
+                                        <span class="text-xs font-mono text-slate-500 dark:text-zinc-400">Customer ID: <strong class="text-slate-700 dark:text-zinc-200" th:text="${currentUser.id != null ? #numbers.formatInteger(currentUser.id, 5) : '00000'}">00007</strong></span>
+                                    </div>
+                                </div>
+                                <div class="mt-2 sm:mt-0 flex flex-wrap items-center gap-2">
+                                    <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-orange-500/10 text-orange-500 border border-orange-500/20" 
+                                          th:text="${#strings.listJoin(currentUser.roles, ', ')}">RIDER</span>
+                                    <span th:if="${driverProfile != null or (currentUser.roles != null and #lists.contains(currentUser.roles, 'DRIVER'))}" 
+                                          class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 border border-amber-500/30 text-amber-500">
+                                        <i class="fa-solid fa-star text-amber-400"></i>
+                                        <span th:text="${driverProfile != null and driverProfile.rating != null and driverProfile.rating > 0.0 ? #numbers.formatDecimal(driverProfile.rating, 1, 1) + ' ★ Driver Rating' : '5.0 ★ (New Driver)'}">4.8 ★ Driver Rating</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <label for="pfpFile" class="mt-3 inline-flex items-center space-x-2 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800 text-xs font-medium cursor-pointer text-slate-700 dark:text-zinc-300 transition">
+                                <i class="fa-solid fa-image text-orange-500"></i>
+                                <span id="pfp-label-text">Upload new profile picture</span>
+                            </label>
                         </div>
                     </div>
-                </div>
 
-                <div class="pt-6 text-center">
-                    <a th:href="@{/}" class="inline-block px-6 py-2.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-700 transition shadow-sm">
-                        Back to Dashboard
-                    </a>
-                </div>
+                    <!-- Editable Account Details -->
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Account Information</h3>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Editable Full Name -->
+                            <div class="p-4 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800">
+                                <label for="name" class="text-xs text-slate-400 block mb-1 font-semibold uppercase tracking-wider">Full Name (Editable)</label>
+                                <input type="text" id="name" name="name" th:value="${currentUser.name}" required
+                                       class="w-full px-3 py-2 rounded-lg bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700 text-slate-900 dark:text-white font-medium text-sm focus:border-orange-500 focus:outline-none transition">
+                                <p class="text-[11px] text-slate-400 mt-1">Different users may share the same display name.</p>
+                            </div>
+
+                            <!-- Editable Mobile Number -->
+                            <div class="p-4 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800">
+                                <label for="phoneNumber" class="text-xs text-slate-400 block mb-1 font-semibold uppercase tracking-wider">Mobile Number (Editable)</label>
+                                <input type="tel" id="phoneNumber" name="phoneNumber" th:value="${currentUser.phoneNumber}" required
+                                       class="w-full px-3 py-2 rounded-lg bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700 text-slate-900 dark:text-white font-mono font-medium text-sm focus:border-orange-500 focus:outline-none transition"
+                                       placeholder="e.g. +919876543210">
+                                <p class="text-[11px] text-slate-400 mt-1">Required to book rides and contact drivers/riders.</p>
+                            </div>
+
+                            <!-- Permanent Unique Username -->
+                            <div class="p-4 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800">
+                                <label class="text-xs text-slate-400 block mb-1 font-semibold uppercase tracking-wider">
+                                    Username <i class="fa-solid fa-lock text-slate-400 ml-1"></i>
+                                </label>
+                                <input type="text" th:value="${currentUser.username}" readonly
+                                       class="w-full px-3 py-2 rounded-lg bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-600 dark:text-zinc-400 font-mono text-sm cursor-not-allowed">
+                                <p class="text-[11px] text-slate-400 mt-1">Unique handle in format 5 letters + # + 5 numbers. Cannot be changed.</p>
+                            </div>
+
+                            <!-- Email Address (Readonly) -->
+                            <div class="p-4 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800">
+                                <span class="text-xs text-slate-400 block mb-1 font-semibold uppercase tracking-wider">Email Address</span>
+                                <span class="text-sm font-semibold text-slate-900 dark:text-white" th:text="${currentUser.email}">user@domain.com</span>
+                            </div>
+
+                            <!-- Verification Status -->
+                            <div class="p-4 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800">
+                                <span class="text-xs text-slate-400 block mb-1 font-semibold uppercase tracking-wider">Verification Status</span>
+                                <span class="text-sm font-semibold text-emerald-600 flex items-center space-x-2" th:if="${currentUser.emailVerified}">
+                                    <i class="fa-solid fa-circle-check text-emerald-500"></i> <span>Verified Account</span>
+                                </span>
+                                <span class="text-sm font-semibold text-amber-600 flex items-center space-x-2" th:unless="${currentUser.emailVerified}">
+                                    <i class="fa-solid fa-circle-exclamation text-amber-500"></i> <span>Unverified Account</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Driver Statistics & Details (Visible to Drivers) -->
+                    <div th:if="${driverProfile != null or (currentUser.roles != null and #lists.contains(currentUser.roles, 'DRIVER'))}" class="space-y-4 pt-4 border-t border-slate-200 dark:border-zinc-800">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-semibold text-orange-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-id-card"></i> Driver Profile &amp; Performance
+                            </h3>
+                            <span class="text-xs text-slate-500 dark:text-zinc-400">Average based on Rider Reviews</span>
+                        </div>
+
+                        <!-- Availability Duty Status Toggle Banner -->
+                        <div class="p-4 rounded-xl bg-orange-500/5 dark:bg-orange-500/10 border border-orange-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <div id="availability-beacon" 
+                                     th:class="${driverProfile != null and driverProfile.available} ? 'w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.8)] animate-pulse' : 'w-3.5 h-3.5 rounded-full bg-slate-400 dark:bg-zinc-600'"></div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">Driver Availability:</span>
+                                        <span id="availability-label" 
+                                              th:class="${driverProfile != null and driverProfile.available} ? 'text-xs font-black text-emerald-500 tracking-wide' : 'text-xs font-black text-slate-500 dark:text-zinc-400 tracking-wide'"
+                                              th:text="${driverProfile != null and driverProfile.available} ? 'AVAILABLE • Taking Ride Requests' : 'UNAVAILABLE • Out of Matchmaking'">
+                                            AVAILABLE • Taking Ride Requests
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">Toggle switch to set your account Available to receive rides, or Unavailable to go off duty</p>
+                                </div>
+                            </div>
+                            <!-- Actual Toggle Switch Button -->
+                            <div class="flex items-center gap-3 self-end sm:self-auto">
+                                <span class="text-xs font-bold text-slate-800 dark:text-zinc-200 min-w-[75px] text-right" id="toggle-status-text" 
+                                      th:text="${driverProfile != null and driverProfile.available} ? 'Available' : 'Unavailable'">Available</span>
+                                <label class="availability-switch" title="Toggle Driver Availability">
+                                    <input type="checkbox" id="driverAvailabilityToggle" 
+                                           th:checked="${driverProfile != null and driverProfile.available}" 
+                                           onchange="toggleDriverAvailability()">
+                                    <span class="availability-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <!-- Driver Average Rating Card -->
+                            <div class="p-4 rounded-xl bg-orange-500/5 dark:bg-orange-500/10 border border-orange-500/20 flex flex-col justify-between">
+                                <span class="text-xs text-slate-500 dark:text-zinc-400 block font-semibold uppercase tracking-wider">Average Rating</span>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <div class="flex items-center text-amber-400 text-lg">
+                                        <i class="fa-solid fa-star"></i>
+                                    </div>
+                                    <span class="text-2xl font-black text-slate-900 dark:text-white font-mono" 
+                                          th:text="${driverProfile != null and driverProfile.rating != null and driverProfile.rating > 0.0 ? #numbers.formatDecimal(driverProfile.rating, 1, 1) : '5.0'}">4.8</span>
+                                    <span class="text-xs text-slate-400 font-medium" th:text="${driverProfile != null and driverProfile.rating != null and driverProfile.rating > 0.0 ? '/ 5.0' : '(New Driver)'}">/ 5.0</span>
+                                </div>
+                                <span class="text-[11px] text-slate-500 dark:text-zinc-400 mt-1">Displayed to riders when you accept requests</span>
+                            </div>
+
+                            <!-- Vehicle & Category -->
+                            <div class="p-4 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800 flex flex-col justify-between">
+                                <span class="text-xs text-slate-400 block font-semibold uppercase tracking-wider">Assigned Vehicle</span>
+                                <div class="mt-2">
+                                    <span class="text-base font-bold text-slate-900 dark:text-white capitalize block"
+                                          th:text="${driverProfile != null and driverProfile.vehicleType != null ? driverProfile.vehicleType : 'Auto Rickshaw'}">Auto Rickshaw</span>
+                                    <span class="text-xs font-mono text-orange-500 font-semibold"
+                                          th:text="${driverProfile != null and driverProfile.vehicleId != null ? driverProfile.vehicleId : 'Plate Pending'}">MH 12 AB 1234</span>
+                                </div>
+                                <span class="text-[11px] text-slate-500 dark:text-zinc-400 mt-1">Fleet Registered Vehicle</span>
+                            </div>
+
+                            <!-- Operating Region -->
+                            <div class="p-4 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800 flex flex-col justify-between">
+                                <span class="text-xs text-slate-400 block font-semibold uppercase tracking-wider">Operating Territory</span>
+                                <div class="mt-2">
+                                    <span class="text-base font-bold text-slate-900 dark:text-white block"
+                                          th:text="${driverProfile != null and driverProfile.district != null ? driverProfile.district : 'Primary Operating Zone'}">Mumbai</span>
+                                    <span class="text-xs text-slate-500 dark:text-zinc-400"
+                                          th:text="${driverProfile != null and driverProfile.state != null ? driverProfile.state : 'Maharashtra'}">Maharashtra</span>
+                                </div>
+                                <span class="text-[11px] text-emerald-600 font-semibold flex items-center gap-1 mt-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Verified Fleet Driver
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Deactivate / Cancel Driver Account Section -->
+                        <div class="p-4 rounded-xl border border-rose-500/25 bg-rose-500/5 dark:bg-rose-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2">
+                            <div>
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-rose-500 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> Deactivate Driver Account
+                                </h4>
+                                <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                                    Want to stop driving with RideMesh? You can submit a driver account cancellation request to revert your account to Rider.
+                                </p>
+                            </div>
+                            <button type="button" onclick="openCancellationModal()" 
+                                    class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-600/20 transition flex items-center justify-center gap-2 shrink-0">
+                                <i class="fa-solid fa-user-slash"></i> Cancel Driver Account
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Feedback / Suggestions / Complaint / Report a Bug Section -->
+                    <div class="p-5 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 dark:bg-indigo-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2">
+                        <div class="space-y-1">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-500 flex items-center gap-2">
+                                <i class="fa-solid fa-comments text-sm"></i> Feedback, Suggestions, Complaints &amp; Bug Reports
+                            </h4>
+                            <p class="text-xs text-slate-500 dark:text-zinc-400">
+                                Help us make RideMesh better. Share your experience, suggest features, report issues against platform or drivers, or notify our engineering team of bugs.
+                            </p>
+                        </div>
+                        <button type="button" onclick="openFeedbackModal()" 
+                                class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-600/20 transition flex items-center justify-center gap-2 shrink-0">
+                            <i class="fa-solid fa-pen-to-square"></i> Submit Feedback / Report
+                        </button>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="pt-4 flex flex-col sm:flex-row items-center justify-end space-y-2 sm:space-y-0 sm:space-x-3">
+                        <a th:href="@{/}" class="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800 border border-slate-300 dark:border-zinc-700 text-sm font-semibold text-slate-700 dark:text-zinc-300 transition shadow-sm text-center">
+                            Back to Dashboard
+                        </a>
+                        <button type="submit" 
+                                class="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition shadow-lg shadow-orange-500/25">
+                            <i class="fa-solid fa-floppy-disk mr-2"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
             </div>
         </main>
 
-        <footer class="text-center py-6 text-xs text-slate-400 border-t border-slate-200">
+        <footer class="text-center py-6 text-xs text-slate-400 border-t border-slate-200 dark:border-zinc-800">
             &copy; 2026 RideMesh Systems Inc. All rights reserved.
         </footer>
     </div>
 
+    <!-- Modal 1: Reason for Cancellation & Optional Media -->
+    <div id="cancel-reason-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+        <div class="glass-card w-full max-w-lg rounded-2xl p-6 md:p-8 shadow-2xl border border-gray-200 dark:border-zinc-800 text-left relative" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="flex items-start justify-between border-b border-slate-200 dark:border-zinc-800 pb-3 mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-user-xmark text-orange-500"></i> Cancel Driver Account
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-zinc-400">Step 1 of 2: State your reason for cancellation</p>
+                </div>
+                <button type="button" onclick="closeCancellationModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 text-sm p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Reason Textarea -->
+                <div>
+                    <label for="cancellationReason" class="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                        Reason for cancellation? <span class="text-rose-500">*</span>
+                    </label>
+                    <textarea id="cancellationReason" rows="4" 
+                              oninput="handleReasonInput()" 
+                              placeholder="Please describe why you wish to cancel or deactivate your driver account..."
+                              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-orange-500 transition shadow-inner resize-none"></textarea>
+                    <span class="text-[10px] text-slate-400 dark:text-zinc-500 block mt-1">This explanation will be reviewed by the RideMesh Administration team.</span>
+                </div>
+
+                <!-- Optional Media Attachment -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                        Optional Media / Supporting Document (Images/PDF)
+                    </label>
+                    <div class="border-2 border-dashed border-slate-300 dark:border-zinc-700 rounded-xl p-4 text-center hover:border-orange-500 transition cursor-pointer relative bg-slate-50/50 dark:bg-zinc-900/30">
+                        <input type="file" id="cancellationMedia" accept="image/*,application/pdf" 
+                               onchange="handleMediaSelect(this)" 
+                               class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                        <div id="media-upload-placeholder" class="space-y-1">
+                            <i class="fa-solid fa-cloud-arrow-up text-xl text-slate-400 dark:text-zinc-500"></i>
+                            <p class="text-xs text-slate-600 dark:text-zinc-400 font-medium">Click or drag &amp; drop to attach image or document</p>
+                            <p class="text-[10px] text-slate-400 dark:text-zinc-500">Max size 10MB • JPG, PNG, PDF</p>
+                        </div>
+                        <div id="media-selected-info" class="hidden flex items-center justify-between text-xs text-orange-500 font-medium">
+                            <span id="media-file-name" class="truncate max-w-xs"></span>
+                            <button type="button" onclick="clearSelectedMedia(event)" class="text-rose-500 hover:text-rose-600 ml-2 font-bold text-xs">Remove</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error message container -->
+                <div id="cancellation-step1-error" class="hidden p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs"></div>
+
+                <!-- Modal Action Buttons -->
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-zinc-800">
+                    <button type="button" onclick="closeCancellationModal()" 
+                            class="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-zinc-700 text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition">
+                        Back
+                    </button>
+                    <!-- Proceed button: starts grayed out / disabled, turns orange & active when reason is entered -->
+                    <button type="button" id="proceedToCancellationBtn" 
+                            disabled 
+                            onclick="proceedToCancellation()" 
+                            class="px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-gray-400/40 text-gray-400 cursor-not-allowed border border-gray-300 dark:border-zinc-700 select-none">
+                        <span id="proceedBtnText">Proceed to Cancellation</span> <i class="fa-solid fa-arrow-right text-[10px]" id="proceedBtnIcon"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: OTP Verification & Final Submit -->
+    <div id="cancel-otp-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+        <div class="glass-card w-full max-w-md rounded-2xl p-6 md:p-8 shadow-2xl border border-gray-200 dark:border-zinc-800 text-left relative" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="flex items-start justify-between border-b border-slate-200 dark:border-zinc-800 pb-3 mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-shield-check text-orange-500"></i> Enter Verification OTP
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-zinc-400">Step 2 of 2: Confirm cancellation request</p>
+                </div>
+                <button type="button" onclick="closeOtpModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 text-sm p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div class="p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-xs text-slate-700 dark:text-zinc-300">
+                    A 6-digit verification code has been sent to your registered email: 
+                    <strong class="text-orange-500 font-mono" th:text="${currentUser.email}">driver@example.com</strong>.
+                </div>
+
+                <!-- OTP Input -->
+                <div>
+                    <label for="cancellationOtpInput" class="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                        Enter 6-Digit OTP <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" id="cancellationOtpInput" maxlength="6" 
+                           placeholder="••••••" 
+                           class="w-full text-center tracking-[0.5em] font-mono text-xl py-3 px-4 rounded-xl border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-white font-bold focus:outline-none focus:border-orange-500 transition shadow-inner" />
+                    <div class="flex justify-between items-center mt-2 text-[11px]">
+                        <span class="text-slate-400 dark:text-zinc-500">Expires in 10 minutes</span>
+                        <button type="button" onclick="resendCancellationOtp()" id="resendOtpBtn" class="text-orange-500 hover:text-orange-600 font-semibold underline">
+                            Resend Code
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Error message container -->
+                <div id="cancellation-step2-error" class="hidden p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs"></div>
+
+                <!-- Modal Action buttons -->
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-zinc-800">
+                    <button type="button" onclick="backToReasonModal()" 
+                            class="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-zinc-700 text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition">
+                        Back
+                    </button>
+                    <button type="button" id="finalCancelSubmitBtn" 
+                            onclick="submitFinalCancellation()" 
+                            class="px-5 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/25 transition flex items-center gap-2">
+                        <span id="finalCancelBtnText">Cancel My Driver Account</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Toast Notification -->
+    <div id="statusToast" class="fixed bottom-6 right-6 z-[200] hidden items-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-2xl transition-all duration-300">
+        <i class="fa-solid fa-circle-check text-sm"></i>
+        <span id="toastMessage">Status updated successfully</span>
+    </div>
+
     <!-- Script triggers -->
     <div th:replace="~{fragments/navigation :: navigationScripts}"></div>
+
+    <script>
+        function previewProfilePhoto(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('profile-pfp-preview').src = e.target.result;
+                    document.getElementById('pfp-label-text').textContent = 'Selected: ' + input.files[0].name;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // --- Driver Availability Available/Unavailable Toggle ---
+        async function toggleDriverAvailability() {
+            const toggle = document.getElementById('driverAvailabilityToggle');
+            const beacon = document.getElementById('availability-beacon');
+            const label = document.getElementById('availability-label');
+            const toggleText = document.getElementById('toggle-status-text');
+
+            try {
+                const response = await fetch('/driver/toggle-availability', {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await response.json();
+
+                if (data.available) {
+                    beacon.className = 'w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.8)] animate-pulse';
+                    label.className = 'text-xs font-black text-emerald-500 tracking-wide';
+                    label.textContent = 'AVAILABLE • Taking Ride Requests';
+                    if (toggleText) toggleText.textContent = 'Available';
+                    toggle.checked = true;
+                    showToast('Driver status set to AVAILABLE (Receiving ride requests)');
+                } else {
+                    beacon.className = 'w-3.5 h-3.5 rounded-full bg-slate-400 dark:bg-zinc-600';
+                    label.className = 'text-xs font-black text-slate-500 dark:text-zinc-400 tracking-wide';
+                    label.textContent = 'UNAVAILABLE • Out of Matchmaking';
+                    if (toggleText) toggleText.textContent = 'Unavailable';
+                    toggle.checked = false;
+                    showToast('Driver status set to UNAVAILABLE (Out of matchmaking)', true);
+                }
+            } catch (err) {
+                console.error('Failed to toggle availability:', err);
+                toggle.checked = !toggle.checked;
+                showToast('Failed to update availability status', true);
+            }
+        }
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('statusToast');
+            const text = document.getElementById('toastMessage');
+            text.textContent = msg;
+            toast.className = 'fixed bottom-6 right-6 z-[200] flex items-center gap-2 px-5 py-3 rounded-xl text-white text-xs font-bold shadow-2xl transition-all duration-300 ' + 
+                              (isError ? 'bg-rose-600' : 'bg-emerald-600');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+                toast.classList.remove('flex');
+            }, 3500);
+        }
+
+        // --- Cancellation Modal Flow ---
+        function openCancellationModal() {
+            document.getElementById('cancel-reason-modal').classList.remove('hidden');
+            document.getElementById('cancel-reason-modal').classList.add('flex');
+            document.getElementById('cancellation-step1-error').classList.add('hidden');
+            handleReasonInput();
+        }
+
+        function closeCancellationModal() {
+            document.getElementById('cancel-reason-modal').classList.add('hidden');
+            document.getElementById('cancel-reason-modal').classList.remove('flex');
+        }
+
+        function closeOtpModal() {
+            document.getElementById('cancel-otp-modal').classList.add('hidden');
+            document.getElementById('cancel-otp-modal').classList.remove('flex');
+        }
+
+        function backToReasonModal() {
+            closeOtpModal();
+            openCancellationModal();
+        }
+
+        // Reactive Proceed Button: Grayed out until reason has text, then turns vibrant orange
+        function handleReasonInput() {
+            const reason = document.getElementById('cancellationReason').value.trim();
+            const btn = document.getElementById('proceedToCancellationBtn');
+
+            if (reason.length > 0) {
+                btn.disabled = false;
+                btn.className = 'px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/25 cursor-pointer';
+            } else {
+                btn.disabled = true;
+                btn.className = 'px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-gray-400/40 text-gray-400 cursor-not-allowed border border-gray-300 dark:border-zinc-700 select-none';
+            }
+        }
+
+        function handleMediaSelect(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                document.getElementById('media-upload-placeholder').classList.add('hidden');
+                document.getElementById('media-selected-info').classList.remove('hidden');
+                document.getElementById('media-file-name').textContent = file.name;
+            }
+        }
+
+        function clearSelectedMedia(e) {
+            e.stopPropagation();
+            document.getElementById('cancellationMedia').value = '';
+            document.getElementById('media-upload-placeholder').classList.remove('hidden');
+            document.getElementById('media-selected-info').classList.add('hidden');
+        }
+
+        // Step 1 -> Step 2: Trigger OTP sending & open Modal 2
+        async function proceedToCancellation() {
+            const reason = document.getElementById('cancellationReason').value.trim();
+            const errorDiv = document.getElementById('cancellation-step1-error');
+            const btn = document.getElementById('proceedToCancellationBtn');
+            const btnText = document.getElementById('proceedBtnText');
+            const btnIcon = document.getElementById('proceedBtnIcon');
+
+            if (!reason) {
+                errorDiv.textContent = 'Please enter your reason for cancellation.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            errorDiv.classList.add('hidden');
+            btn.disabled = true;
+            btnText.textContent = 'Sending OTP...';
+            btnIcon.className = 'fa-solid fa-spinner fa-spin text-[10px]';
+
+            try {
+                const response = await fetch('/driver/cancellation/send-otp', {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await response.json();
+
+                if (!response.ok || data.success === false) {
+                    throw new Error(data.message || 'Failed to send OTP to registered email.');
+                }
+
+                // Close Modal 1, Open Modal 2
+                closeCancellationModal();
+                document.getElementById('cancel-otp-modal').classList.remove('hidden');
+                document.getElementById('cancel-otp-modal').classList.add('flex');
+                document.getElementById('cancellationOtpInput').value = '';
+                document.getElementById('cancellation-step2-error').classList.add('hidden');
+            } catch (err) {
+                errorDiv.textContent = err.message || 'Error communicating with server.';
+                errorDiv.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = 'Proceed to Cancellation';
+                btnIcon.className = 'fa-solid fa-arrow-right text-[10px]';
+            }
+        }
+
+        async function resendCancellationOtp() {
+            const resendBtn = document.getElementById('resendOtpBtn');
+            resendBtn.textContent = 'Sending...';
+            resendBtn.disabled = true;
+            try {
+                const response = await fetch('/driver/cancellation/send-otp', {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showToast('New verification code sent to your email.');
+                } else {
+                    showToast(data.message || 'Failed to resend OTP', true);
+                }
+            } catch (err) {
+                showToast('Failed to resend OTP', true);
+            } finally {
+                resendBtn.textContent = 'Resend Code';
+                resendBtn.disabled = false;
+            }
+        }
+
+        // Final Submit: Validate OTP, send reason & media
+        async function submitFinalCancellation() {
+            const otp = document.getElementById('cancellationOtpInput').value.trim();
+            const reason = document.getElementById('cancellationReason').value.trim();
+            const mediaInput = document.getElementById('cancellationMedia');
+            const errorDiv = document.getElementById('cancellation-step2-error');
+            const submitBtn = document.getElementById('finalCancelSubmitBtn');
+            const btnText = document.getElementById('finalCancelBtnText');
+
+            if (!otp || otp.length < 6) {
+                errorDiv.textContent = 'Please enter the complete 6-digit OTP sent to your email.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            errorDiv.classList.add('hidden');
+            submitBtn.disabled = true;
+            btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Submitting...';
+
+            const formData = new FormData();
+            formData.append('reason', reason);
+            formData.append('otp', otp);
+            if (mediaInput.files && mediaInput.files[0]) {
+                formData.append('media', mediaInput.files[0]);
+            }
+
+            try {
+                const response = await fetch('/driver/cancellation/submit', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (!response.ok || data.success === false) {
+                    throw new Error(data.message || 'Failed to submit cancellation request.');
+                }
+
+                closeOtpModal();
+                alert('Your driver account cancellation request has been submitted to the Admin team! You will be notified once reviewed.');
+                window.location.reload();
+            } catch (err) {
+                errorDiv.textContent = err.message || 'An error occurred while submitting request.';
+                errorDiv.classList.remove('hidden');
+                submitBtn.disabled = false;
+                btnText.textContent = 'Cancel My Driver Account';
+            }
+        }
+
+        // ==========================================
+        // Feedback / Suggestion / Complaint / Bug Report Modal Logic
+        // ==========================================
+        function openFeedbackModal() {
+            const modal = document.getElementById('feedback-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                handleFeedbackTypeChange();
+            }
+        }
+
+        function closeFeedbackModal() {
+            const modal = document.getElementById('feedback-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+            const form = document.getElementById('feedbackForm');
+            if (form) form.reset();
+            const errDiv = document.getElementById('feedbackErrorMsg');
+            if (errDiv) errDiv.classList.add('hidden');
+            handleFeedbackTypeChange();
+        }
+
+        function handleFeedbackTypeChange() {
+            const type = document.getElementById('feedbackCategorySelect').value;
+            const subTypeContainer = document.getElementById('feedbackSubTypeContainer');
+            const subTypeSelect = document.getElementById('feedbackSubTypeSelect');
+            const subTypeLabel = document.getElementById('feedbackSubTypeLabel');
+            const mediaReqLabel = document.getElementById('mediaRequiredBadge');
+            const mediaDesc = document.getElementById('mediaOptionalDesc');
+
+            // Reset subType
+            subTypeSelect.innerHTML = '';
+
+            if (type === 'FEEDBACK') {
+                subTypeContainer.classList.remove('hidden');
+                subTypeLabel.textContent = 'Feedback Sentiment *';
+                subTypeSelect.innerHTML = `
+                    <option value="POSITIVE">Positive Review</option>
+                    <option value="NEGATIVE">Negative Review</option>
+                `;
+                mediaReqLabel.classList.add('hidden');
+                mediaDesc.textContent = 'Upload an optional screenshot or image.';
+            } else if (type === 'COMPLAINT') {
+                subTypeContainer.classList.remove('hidden');
+                subTypeLabel.textContent = 'Complaint Target *';
+                subTypeSelect.innerHTML = `
+                    <option value="AGAINST_DRIVER">Against Driver</option>
+                    <option value="AGAINST_PLATFORM">Against Platform</option>
+                `;
+                mediaReqLabel.classList.add('hidden');
+                mediaDesc.textContent = 'Upload an optional screenshot or evidence image.';
+            } else if (type === 'BUG_REPORT') {
+                subTypeContainer.classList.add('hidden');
+                mediaReqLabel.classList.remove('hidden');
+                mediaDesc.textContent = 'Compulsory: Screenshot or recording of the issue is required.';
+            } else {
+                // SUGGESTION
+                subTypeContainer.classList.add('hidden');
+                mediaReqLabel.classList.add('hidden');
+                mediaDesc.textContent = 'Upload an optional screenshot or reference mockup.';
+            }
+
+            validateFeedbackForm();
+        }
+
+        function validateFeedbackForm() {
+            const type = document.getElementById('feedbackCategorySelect').value;
+            const content = document.getElementById('feedbackContentTextarea').value.trim();
+            const mediaFiles = document.getElementById('feedbackMediaInput').files;
+            const submitBtn = document.getElementById('submitFeedbackBtn');
+
+            let isValid = true;
+            if (!content || content.length === 0) {
+                isValid = false;
+            }
+
+            // If BUG_REPORT, media is compulsory
+            if (type === 'BUG_REPORT') {
+                if (!mediaFiles || mediaFiles.length === 0) {
+                    isValid = false;
+                }
+            }
+
+            if (isValid) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        async function submitFeedbackForm(event) {
+            event.preventDefault();
+            const type = document.getElementById('feedbackCategorySelect').value;
+            const subTypeSelect = document.getElementById('feedbackSubTypeSelect');
+            const subType = subTypeSelect ? subTypeSelect.value : '';
+            const content = document.getElementById('feedbackContentTextarea').value.trim();
+            const mediaInput = document.getElementById('feedbackMediaInput');
+            const errorDiv = document.getElementById('feedbackErrorMsg');
+            const submitBtn = document.getElementById('submitFeedbackBtn');
+            const submitBtnText = document.getElementById('submitFeedbackBtnText');
+
+            errorDiv.classList.add('hidden');
+
+            if (!content) {
+                errorDiv.textContent = 'Please enter your message in the content box.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (type === 'BUG_REPORT' && (!mediaInput.files || mediaInput.files.length === 0)) {
+                errorDiv.textContent = 'Evidence media is compulsory when reporting a bug.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('type', type);
+            if (subType) {
+                formData.append('subType', subType);
+            }
+            formData.append('content', content);
+            if (mediaInput.files && mediaInput.files.length > 0) {
+                formData.append('media', mediaInput.files[0]);
+            }
+
+            submitBtn.disabled = true;
+            submitBtnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Submitting...';
+
+            try {
+                const response = await fetch('/feedback/submit', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    alert(result.message || 'Thank you! Your submission has been received by our platform team.');
+                    closeFeedbackModal();
+                } else {
+                    errorDiv.textContent = result.message || 'Failed to submit. Please try again.';
+                    errorDiv.classList.remove('hidden');
+                    submitBtn.disabled = false;
+                    submitBtnText.innerHTML = '<i class="fa-solid fa-paper-plane mr-1.5"></i> Submit';
+                }
+            } catch (err) {
+                errorDiv.textContent = 'Network error: ' + err.message;
+                errorDiv.classList.remove('hidden');
+                submitBtn.disabled = false;
+                submitBtnText.innerHTML = '<i class="fa-solid fa-paper-plane mr-1.5"></i> Submit';
+            }
+        }
+    </script>
+
+    <!-- Feedback / Suggestion / Complaint / Bug Report Modal (Fixed Size, Scrollable Content) -->
+    <div id="feedback-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+        <div class="glass-card w-full max-w-lg h-[620px] max-h-[92vh] rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800 text-left relative flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+            <!-- Fixed Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-zinc-800 bg-white/5 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-lightbulb"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white">Feedback &amp; Reports</h3>
+                        <p class="text-xs text-slate-500 dark:text-zinc-400">Share feedback, suggestion, complaint, or report a bug</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeFeedbackModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 p-1.5 rounded-lg text-sm">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Scrollable Body Content -->
+            <form id="feedbackForm" onsubmit="submitFeedbackForm(event)" class="flex-1 flex flex-col overflow-hidden">
+                <div class="flex-1 overflow-y-auto p-6 space-y-4">
+                    <!-- Error Alert -->
+                    <div id="feedbackErrorMsg" class="hidden p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs text-center font-medium"></div>
+
+                    <!-- 1st Option: Dropdown Category -->
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-700 dark:text-zinc-300 flex items-center justify-between">
+                            <span>1. Select Category *</span>
+                        </label>
+                        <select id="feedbackCategorySelect" onchange="handleFeedbackTypeChange()" 
+                                class="w-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 transition">
+                            <option value="FEEDBACK" selected>Feedback</option>
+                            <option value="SUGGESTION">Suggestion</option>
+                            <option value="COMPLAINT">Complaint</option>
+                            <option value="BUG_REPORT">Report a Bug</option>
+                        </select>
+                    </div>
+
+                    <!-- SubType Dynamic Dropdown -->
+                    <div id="feedbackSubTypeContainer" class="space-y-1.5">
+                        <label id="feedbackSubTypeLabel" class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+                            Feedback Sentiment *
+                        </label>
+                        <select id="feedbackSubTypeSelect" 
+                                class="w-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 transition">
+                            <option value="POSITIVE">Positive Review</option>
+                            <option value="NEGATIVE">Negative Review</option>
+                        </select>
+                    </div>
+
+                    <!-- Content Textarea -->
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-slate-700 dark:text-zinc-300 flex items-center justify-between">
+                            <span>Details &amp; Description *</span>
+                            <span class="text-[10px] text-slate-400 font-normal">Please be as specific as possible</span>
+                        </label>
+                        <textarea id="feedbackContentTextarea" rows="4" oninput="validateFeedbackForm()" required
+                                  placeholder="Write your feedback, suggestions, complaint details or bug reproduction steps here..."
+                                  class="w-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 transition placeholder:text-slate-400 dark:placeholder:text-zinc-600 resize-none"></textarea>
+                    </div>
+
+                    <!-- Media Attachment Space -->
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-semibold text-slate-700 dark:text-zinc-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-paperclip text-slate-400"></i> Evidence / Media Attachment
+                            </label>
+                            <span id="mediaRequiredBadge" class="hidden px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[10px] font-bold uppercase tracking-wider">
+                                Compulsory
+                            </span>
+                        </div>
+                        <input type="file" id="feedbackMediaInput" accept="image/*,video/*" onchange="validateFeedbackForm()"
+                               class="w-full text-xs text-slate-500 dark:text-zinc-400 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-500/10 file:text-indigo-400 hover:file:bg-indigo-500/20 cursor-pointer bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-2 transition">
+                        <p id="mediaOptionalDesc" class="text-[11px] text-slate-400 dark:text-zinc-500">
+                            Upload an optional screenshot or image.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Fixed Footer with Buttons -->
+                <div class="px-6 py-4 border-t border-slate-200 dark:border-zinc-800 bg-white/5 flex items-center justify-end gap-3 shrink-0">
+                    <button type="button" onclick="closeFeedbackModal()" 
+                            class="px-4 py-2 rounded-xl border border-slate-300 dark:border-zinc-700 text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition">
+                        Cancel
+                    </button>
+                    <button type="submit" id="submitFeedbackBtn" disabled
+                            class="opacity-50 cursor-not-allowed px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-lg shadow-indigo-600/25 transition flex items-center gap-1.5">
+                        <span id="submitFeedbackBtnText"><i class="fa-solid fa-paper-plane mr-1.5"></i> Submit</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

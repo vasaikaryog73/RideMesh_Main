@@ -10,10 +10,12 @@
     <!-- Leaflet Maps CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Razorpay Checkout JS for UPI Payments -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <style>
         body {
-            background-color: #0b0f19;
-            color: #f3f4f6;
+            background-color: var(--color-bg, #ffffff);
+            color: var(--color-text, #0f172a);
             font-family: 'Inter', sans-serif;
         }
         .glass-card {
@@ -34,285 +36,593 @@
             100% { transform: rotate(360deg); }
         }
     </style>
+    <!-- Include Theme Styles in head for instant theme rendering without flicker -->
+    <th:block th:replace="~{fragments/navigation :: themeStyles}"></th:block>
 </head>
-<body class="min-h-screen flex">
+<body class="min-h-screen flex flex-col lg:flex-row w-full overflow-x-hidden">
 
     <!-- Sidebar fragment injection -->
     <div th:replace="~{fragments/navigation :: sidebar('book', ${currentUser})}"></div>
 
-    <div class="flex-grow flex flex-col min-h-screen">
+    <div class="flex-1 flex flex-col min-h-screen w-full min-w-0">
         <!-- Top Navbar fragment injection -->
         <header th:replace="~{fragments/navigation :: navbar(${currentUser})}"></header>
 
-        <main class="flex-grow p-8 flex items-start justify-center relative overflow-hidden">
+        <main class="flex-grow p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 relative overflow-hidden">
             <div class="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600 rounded-full filter blur-3xl opacity-10 animate-pulse"></div>
             
-            <div class="w-full max-w-2xl relative z-10 space-y-6">
+            <div class="w-full relative z-10 space-y-6 sm:space-y-8">
 
                 <!-- Alert Message for Booking Errors -->
                 <div th:if="${bookingError != null}" class="p-4 rounded-xl bg-rose-950/50 border border-rose-500/30 text-rose-400 text-sm text-center shadow-lg">
                     <span th:text="${bookingError}">Error message</span>
                 </div>
 
-                <!-- VIEW A: Ride Booking Form (when no active request and no active ride exists) -->
-                <div th:if="${activeRequest == null && activeRide == null}" class="glass-card p-8 rounded-2xl shadow-2xl space-y-6">
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-950 pb-4 gap-4">
-                        <div class="flex items-center space-x-4">
-                            <div class="w-10 h-10 rounded-lg bg-indigo-600/20 flex items-center justify-center text-indigo-400 text-lg"><i class="fa-solid fa-map-location-dot"></i></div>
-                            <div>
-                                <h2 class="text-xl font-bold text-white">Book a Ride</h2>
-                                <p class="text-xs text-gray-400">Request a RideMesh driver instantly. Wallet: <span class="text-emerald-400 font-semibold" th:text="'₹' + ${wallet != null && wallet.balance != null ? #numbers.formatDecimal(wallet.balance, 1, 2) : '0.00'}">₹0.00</span></p>
-                            </div>
+                <!-- Missing Phone Alert Banner -->
+                <div th:if="${missingPhone}" class="p-4 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-triangle-exclamation text-base text-orange-400"></i>
+                        <span><strong>Phone number required:</strong> Please add your mobile number in your profile before requesting rides.</span>
+                    </div>
+                    <a th:href="@{/profile}" class="px-3.5 py-1.5 rounded-lg bg-orange-500 text-white font-bold hover:bg-orange-400 transition text-xs shrink-0">
+                        Update Profile
+                    </a>
+                </div>
+
+                <!-- VIEW A: Ride Booking Form (when no active request exists) -->
+                <div th:if="${activeRequest == null && activeRide == null}" class="glass-card p-4 sm:p-6 lg:p-8 rounded-2xl shadow-2xl space-y-6 sm:space-y-8">
+                    <div class="flex items-center space-x-4 border-b border-gray-950 pb-4">
+                        <div class="w-10 h-10 rounded-lg bg-indigo-600/20 flex items-center justify-center text-indigo-400 text-lg"><i class="fa-solid fa-map-location-dot"></i></div>
+                        <div>
+                            <h2 class="text-xl font-bold text-white">Book a Ride</h2>
+                            <p class="text-xs text-gray-400">Request a RideMesh driver instantly. Wallet: <span class="text-emerald-400 font-semibold" th:text="'₹' + ${#numbers.formatDecimal(wallet.balance, 1, 2)}">₹0.00</span></p>
                         </div>
-                        <!-- Schedule a Driver Option Button -->
-                        <button type="button" onclick="showNotImplementedModal(event)" class="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-500 text-xs font-semibold transition">
-                            <i class="fa-regular fa-calendar-check"></i>
-                            <span>Schedule a Driver</span>
-                        </button>
                     </div>
 
-                    <form th:action="@{/rider/requestRide}" method="POST" onsubmit="return showNotImplementedModal(event)" class="space-y-6">
-                        <!-- Pickup Location Inputs -->
-                        <div class="space-y-3">
-                            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">1. Pickup Location</span>
-                            <div class="relative">
-                                <label class="text-[10px] text-gray-400 block mb-1">From (Pickup Address)</label>
-                                <input type="text" id="pickup-search" autocomplete="off" placeholder="Search pickup location..."
-                                       class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-2.5 text-white text-sm focus:outline-none transition">
-                                <div id="pickup-suggestions" class="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-gray-900 border border-gray-800 rounded-lg shadow-2xl z-50 hidden text-xs divide-y divide-gray-850"></div>
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-gray-400 block mb-1">Pickup Map</label>
-                                <div id="pickup-map" class="h-48 w-full rounded-lg border border-gray-900 overflow-hidden relative z-10"></div>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="text-[10px] text-gray-400 block mb-1">Pickup Latitude (Optional)</label>
-                                    <input type="number" id="pickup-lat" name="pickupLat" step="any" required value="19.0760"
-                                           class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-2.5 text-white text-sm focus:outline-none transition">
+                    <form th:action="@{/rider/requestRide}" method="POST" class="space-y-8">
+                        <!-- Locations Grid (Pickup & Dropoff Side-by-Side) -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <!-- Pickup Location Inputs -->
+                            <div class="space-y-4 p-5 rounded-xl bg-white dark:bg-gray-950/40 border border-slate-200 dark:border-gray-900/60 shadow-sm">
+                                <span class="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider block">1. Pickup Location</span>
+                                <div class="relative">
+                                    <label class="text-[10px] text-slate-500 dark:text-gray-400 block mb-1">From (Pickup Address)</label>
+                                    <input type="text" id="pickup-search" name="pickupAddress" autocomplete="off" placeholder="Search pickup location..."
+                                           value="Cooper Hospital, Gulmohar Road, Vile Parle West, K/W Ward, Mumbai Zone 3, Mumbai, Mumbai Suburban District, Maharashtra, 400057, India"
+                                           class="w-full bg-white dark:bg-gray-950/60 border border-slate-200 dark:border-gray-900 focus:border-orange-500 rounded-lg p-3 text-slate-900 dark:text-white text-sm focus:outline-none transition">
+                                    <div id="pickup-suggestions" class="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg shadow-2xl z-50 hidden text-xs divide-y divide-slate-100 dark:divide-gray-850"></div>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-gray-400 block mb-1">Pickup Longitude (Optional)</label>
-                                    <input type="number" id="pickup-lng" name="pickupLng" step="any" required value="72.8777"
-                                           class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-2.5 text-white text-sm focus:outline-none transition">
+                                    <label class="text-[10px] text-slate-500 dark:text-gray-400 block mb-1">Pickup Map</label>
+                                    <div id="pickup-map" class="h-60 w-full rounded-lg border border-slate-200 dark:border-gray-900 overflow-hidden relative z-10"></div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-[10px] text-slate-500 dark:text-gray-400 block mb-1">Pickup Latitude (Optional)</label>
+                                        <input type="number" id="pickup-lat" name="pickupLat" step="any" required value="19.107644"
+                                               class="w-full bg-white dark:bg-gray-950/60 border border-slate-200 dark:border-gray-900 focus:border-orange-500 rounded-lg p-2.5 text-slate-900 dark:text-white text-sm focus:outline-none transition">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] text-slate-500 dark:text-gray-400 block mb-1">Pickup Longitude (Optional)</label>
+                                        <input type="number" id="pickup-lng" name="pickupLng" step="any" required value="72.836803"
+                                               class="w-full bg-white dark:bg-gray-950/60 border border-slate-200 dark:border-gray-900 focus:border-orange-500 rounded-lg p-2.5 text-slate-900 dark:text-white text-sm focus:outline-none transition">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Dropoff Location Inputs -->
+                            <div class="space-y-4 p-5 rounded-xl bg-white dark:bg-gray-950/40 border border-slate-200 dark:border-gray-900/60 shadow-sm">
+                                <span class="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider block">2. Dropoff Location</span>
+                                <div class="relative">
+                                    <label class="text-[10px] text-slate-500 dark:text-gray-400 block mb-1">To (Dropoff Address)</label>
+                                    <input type="text" id="dropoff-search" name="dropoffAddress" autocomplete="off" placeholder="Search dropoff location..."
+                                           value="Andheri Station (W), Madhavdas Amarshi Marg, Gaondevi Dongri, Andheri West, K/W Ward, Mumbai Zone 3, Mumbai, Mumbai Suburban District, Maharashtra, 400069, India"
+                                           class="w-full bg-white dark:bg-gray-950/60 border border-slate-200 dark:border-gray-900 focus:border-orange-500 rounded-lg p-3 text-slate-900 dark:text-white text-sm focus:outline-none transition">
+                                    <div id="dropoff-suggestions" class="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg shadow-2xl z-50 hidden text-xs divide-y divide-slate-100 dark:divide-gray-850"></div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-slate-500 dark:text-gray-400 block mb-1">Dropoff Map</label>
+                                    <div id="dropoff-map" class="h-60 w-full rounded-lg border border-slate-200 dark:border-gray-900 overflow-hidden relative z-10"></div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-[10px] text-slate-500 dark:text-gray-400 block mb-1">Dropoff Latitude (Optional)</label>
+                                        <input type="number" id="dropoff-lat" name="dropoffLat" step="any" required value="19.119705"
+                                               class="w-full bg-white dark:bg-gray-950/60 border border-slate-200 dark:border-gray-900 focus:border-orange-500 rounded-lg p-2.5 text-slate-900 dark:text-white text-sm focus:outline-none transition">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] text-slate-500 dark:text-gray-400 block mb-1">Dropoff Longitude (Optional)</label>
+                                        <input type="number" id="dropoff-lng" name="dropoffLng" step="any" required value="72.846081"
+                                               class="w-full bg-white dark:bg-gray-950/60 border border-slate-200 dark:border-gray-900 focus:border-orange-500 rounded-lg p-2.5 text-slate-900 dark:text-white text-sm focus:outline-none transition">
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Dropoff Location Inputs -->
-                        <div class="space-y-3">
-                            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">2. Dropoff Location</span>
-                            <div class="relative">
-                                <label class="text-[10px] text-gray-400 block mb-1">To (Dropoff Address)</label>
-                                <input type="text" id="dropoff-search" autocomplete="off" placeholder="Search dropoff location..."
-                                       class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-2.5 text-white text-sm focus:outline-none transition">
-                                <div id="dropoff-suggestions" class="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-gray-900 border border-gray-800 rounded-lg shadow-2xl z-50 hidden text-xs divide-y divide-gray-850"></div>
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-gray-400 block mb-1">Dropoff Map</label>
-                                <div id="dropoff-map" class="h-48 w-full rounded-lg border border-gray-900 overflow-hidden relative z-10"></div>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Preferences Row -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-gray-900/60">
+                            <!-- Vehicle Preference Selector -->
+                            <div class="space-y-2">
+                                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">3. Vehicle Preference</span>
                                 <div>
-                                    <label class="text-[10px] text-gray-400 block mb-1">Dropoff Latitude (Optional)</label>
-                                    <input type="number" id="dropoff-lat" name="dropoffLat" step="any" required value="19.1200"
-                                           class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-2.5 text-white text-sm focus:outline-none transition">
-                                </div>
-                                <div>
-                                    <label class="text-[10px] text-gray-400 block mb-1">Dropoff Longitude (Optional)</label>
-                                    <input type="number" id="dropoff-lng" name="dropoffLng" step="any" required value="72.9000"
-                                           class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-2.5 text-white text-sm focus:outline-none transition">
+                                    <select id="vehicleTypeSelect" name="vehicleType" required
+                                            class="w-full bg-white dark:bg-gray-950/60 border border-slate-200 dark:border-gray-900 focus:border-orange-500 rounded-lg p-3 text-slate-900 dark:text-white text-sm focus:outline-none transition">
+                                        <option value="" disabled selected>Select Vehicle</option>
+                                        <option value="car">Car (Up to 50 km)</option>
+                                        <option value="6 seater van">6 Seater Van (Up to 50 km)</option>
+                                        <option value="8 seater van">8 Seater Van (Up to 50 km)</option>
+                                        <option value="bike">Bike (Up to 15 km)</option>
+                                        <option value="scooter">Scooter (Up to 15 km)</option>
+                                        <option value="rickshaw">Rickshaw (Up to 5 km)</option>
+                                    </select>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Vehicle Preference Selector -->
-                        <div class="space-y-3">
-                            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">3. Vehicle Preference</span>
-                            <div>
-                                <select name="vehicleType" required
-                                        class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-2.5 text-white text-sm focus:outline-none transition">
-                                    <option value="car">Car (Up to 50 km)</option>
-                                    <option value="6 seater van">6 Seater Van (Up to 50 km)</option>
-                                    <option value="8 seater van">8 Seater Van (Up to 50 km)</option>
-                                    <option value="bike">Bike (Up to 15 km)</option>
-                                    <option value="scooter">Scooter (Up to 15 km)</option>
-                                    <option value="rickshaw">Rickshaw (Up to 5 km)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Payment Method Selector -->
-                        <div class="space-y-3">
-                            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">4. Payment Preference</span>
-                            <div>
-                                <select name="paymentMethod" required
-                                        class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-2.5 text-white text-sm focus:outline-none transition">
-                                    <option value="WALLET">Wallet Balance</option>
-                                    <option value="CASH">Cash Payment</option>
-                                </select>
+                            <!-- Payment Method Selector -->
+                            <div class="space-y-2">
+                                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">4. Payment Preference</span>
+                                <div>
+                                    <select id="paymentMethodSelect" name="paymentMethod" required
+                                            class="w-full bg-white dark:bg-gray-950/60 border border-slate-200 dark:border-gray-900 focus:border-orange-500 rounded-lg p-3 text-slate-900 dark:text-white text-sm focus:outline-none transition">
+                                        <option value="" disabled selected>Select Payment option</option>
+                                        <option value="WALLET">Wallet Balance</option>
+                                        <option value="UPI">UPI (Pay via Razorpay on Completion)</option>
+                                        <option value="CASH">Cash Payment</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Booking Submit -->
-                        <button type="submit"
-                                class="w-full py-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition shadow-lg hover:scale-[1.01]">
+                        <button type="submit" id="requestRideBtn" disabled
+                                class="w-full py-4 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-base transition shadow-lg hover:scale-[1.005]">
                             Request Ride Mesh
                         </button>
                     </form>
                 </div>
 
-                <!-- VIEW B: Ride Search Status Screen (when active request exists) -->
-                <div th:if="${activeRequest != null}" class="glass-card p-8 rounded-2xl shadow-2xl text-center space-y-8">
-                    <!-- Rotating Radar Spinner -->
-                    <div class="relative flex items-center justify-center h-24">
-                        <div class="search-radar"></div>
-                        <div class="absolute w-12 h-12 bg-indigo-500/10 border border-indigo-500/30 rounded-full flex items-center justify-center text-indigo-400 text-lg">
-                            <i class="fa-solid fa-car"></i>
+                <!-- VIEW B: Ride Search / Requested Screen (matches user reference Screenshot 1) -->
+                <div th:if="${activeRequest != null}" class="glass-card p-5 sm:p-7 rounded-2xl shadow-2xl space-y-6">
+                    <!-- Gig / Service Card Header (Screenshot 1) -->
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center space-x-3.5">
+                            <div class="w-12 h-12 rounded-full bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-500 text-xl shadow-inner">
+                                <i class="fa-solid fa-car-side"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-white capitalize leading-tight" 
+                                    th:text="${activeRequest.vehicleType != null ? activeRequest.vehicleType : 'RideMesh Express'}">
+                                    RideMesh Express
+                                </h3>
+                                <div class="flex items-center gap-1.5 text-xs text-gray-400 mt-0.5">
+                                    <i class="fa-regular fa-calendar-days text-rose-400 text-[11px]"></i>
+                                    <span th:text="${activeRequest.requestTime != null ? #temporals.format(activeRequest.requestTime, 'dd MMM yyyy, HH:mm') : (activeRequest.createdTime != null ? #temporals.format(activeRequest.createdTime, 'dd MMM yyyy, HH:mm') : 'Today')}">Today</span>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="px-3.5 py-1 rounded-full text-xs font-extrabold tracking-wider uppercase shadow-sm inline-flex items-center"
+                              style="color: #ffffff !important; background-color: #1e293b !important; border: 1px solid #475569 !important;">
+                            REQUESTED
+                        </span>
+                    </div>
+
+                    <!-- Description -->
+                    <p class="text-xs text-gray-400 text-left">
+                        Point-to-point transit ride request. Searching and broadcasting to nearby active drivers...
+                    </p>
+
+                    <!-- 4-Stage Progress Stepper (Screenshot 1: Step 1 active orange dot, remaining 3 gray) -->
+                    <div class="py-2">
+                        <div class="flex items-center justify-between relative px-4">
+                            <!-- Background line -->
+                            <div class="absolute left-8 right-8 top-3 h-0.5 bg-slate-200 dark:bg-gray-800 -z-0"></div>
+                            <!-- Active connecting line (0% for REQUESTED) -->
+                            <div class="absolute left-8 top-3 h-0.5 bg-orange-500 transition-all duration-500 -z-0" style="width: 0%;"></div>
+
+                            <!-- Step 1: Requested (Active Orange Dot) -->
+                            <div class="flex flex-col items-center relative z-10 space-y-1.5">
+                                <div class="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-[8px] font-bold ring-4 ring-orange-500/20 shadow-md">
+                                    <i class="fa-solid fa-circle text-[7px] text-white"></i>
+                                </div>
+                                <span class="text-[11px] text-orange-500 font-bold">Requested</span>
+                            </div>
+
+                            <!-- Step 2: Accepted -->
+                            <div class="flex flex-col items-center relative z-10 space-y-1.5">
+                                <div class="w-6 h-6 rounded-full bg-slate-100 dark:bg-gray-800 text-slate-400 dark:text-gray-500 border border-slate-200 dark:border-transparent flex items-center justify-center text-[8px] font-bold">
+                                    <i class="fa-solid fa-circle text-[6px] text-slate-300 dark:text-gray-600"></i>
+                                </div>
+                                <span class="text-[11px] text-slate-500 dark:text-gray-500 font-medium">Accepted</span>
+                            </div>
+
+                            <!-- Step 3: In Progress -->
+                            <div class="flex flex-col items-center relative z-10 space-y-1.5">
+                                <div class="w-6 h-6 rounded-full bg-slate-100 dark:bg-gray-800 text-slate-400 dark:text-gray-500 border border-slate-200 dark:border-transparent flex items-center justify-center text-[8px] font-bold">
+                                    <i class="fa-solid fa-circle text-[6px] text-slate-300 dark:text-gray-600"></i>
+                                </div>
+                                <span class="text-[11px] text-slate-500 dark:text-gray-500 font-medium">In Progress</span>
+                            </div>
+
+                            <!-- Step 4: Completed -->
+                            <div class="flex flex-col items-center relative z-10 space-y-1.5">
+                                <div class="w-6 h-6 rounded-full bg-slate-100 dark:bg-gray-800 text-slate-400 dark:text-gray-500 border border-slate-200 dark:border-transparent flex items-center justify-center text-[8px] font-bold">
+                                    <i class="fa-solid fa-circle text-[6px] text-slate-300 dark:text-gray-600"></i>
+                                </div>
+                                <span class="text-[11px] text-slate-500 dark:text-gray-500 font-medium">Completed</span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Search Header -->
-                    <div class="space-y-2">
-                        <h2 class="text-2xl font-bold text-white">Searching for Drivers</h2>
-                        <p class="text-xs text-gray-400">Connecting your booking request with nearby available drivers...</p>
-                        
-                        <!-- Search Countdown Timer -->
-                        <div class="mt-4 inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold">
-                            <i class="fa-regular fa-clock"></i>
-                            <span>Time remaining: <span id="countdown-timer">05:00</span></span>
+                    <!-- Divider -->
+                    <div class="border-t border-slate-200 dark:border-gray-900 pt-3">
+                        <div class="flex items-center justify-between">
+                            <div class="text-left">
+                                <span class="text-[11px] text-slate-500 dark:text-gray-400 block font-medium">Assigned Worker</span>
+                                <span class="text-sm font-bold text-slate-900 dark:text-white">Pending Assignment</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-2xl font-black text-orange-500 tracking-tight" 
+                                      th:text="'₹' + ${activeRequest.fare != null ? #numbers.formatDecimal(activeRequest.fare, 1, 2) : '0.00'}">₹350</span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Details Card -->
-                    <div class="p-6 rounded-xl bg-gray-900/40 border border-gray-900 text-left space-y-4 text-xs">
-                        <div class="flex justify-between border-b border-gray-950 pb-2">
-                            <span class="text-gray-500">Request ID</span>
-                            <span class="font-mono text-indigo-400 font-bold" th:text="'#' + ${activeRequest.id}">#12</span>
+                    <!-- Pickup & Dropoff details preview -->
+                    <div class="p-3.5 rounded-xl bg-white dark:bg-gray-950/60 border border-slate-200 dark:border-gray-900 text-left space-y-2 text-xs shadow-sm">
+                        <div class="flex items-start space-x-2">
+                            <i class="fa-solid fa-location-dot text-rose-500 mt-0.5 text-xs shrink-0"></i>
+                            <div class="flex-grow">
+                                <span class="text-slate-500 dark:text-gray-500 text-[10px] uppercase font-semibold block">Pickup</span>
+                                <span id="pickup-location-display" class="text-slate-800 dark:text-gray-300 text-xs break-words"
+                                      th:data-lat="${activeRequest.pickUpLocation != null and activeRequest.pickUpLocation.coordinates != null ? activeRequest.pickUpLocation.coordinates[1] : ''}"
+                                      th:data-lng="${activeRequest.pickUpLocation != null and activeRequest.pickUpLocation.coordinates != null ? activeRequest.pickUpLocation.coordinates[0] : ''}"
+                                      th:text="${activeRequest.pickUpLocation != null and activeRequest.pickUpLocation.coordinates != null ? activeRequest.pickUpLocation.coordinates[1] + ', ' + activeRequest.pickUpLocation.coordinates[0] : 'Pickup Location'}">Pickup Location</span>
+                            </div>
                         </div>
-                        <div class="flex justify-between border-b border-gray-950 pb-2">
-                            <span class="text-gray-500">Pickup Location</span>
-                            <span id="pickup-location-display" class="text-white font-medium text-right max-w-[65%] break-words"
-                                  th:data-lat="${activeRequest.pickUpLocation != null && activeRequest.pickUpLocation.coordinates != null && activeRequest.pickUpLocation.coordinates.length > 1 ? activeRequest.pickUpLocation.coordinates[1] : 0.0}"
-                                  th:data-lng="${activeRequest.pickUpLocation != null && activeRequest.pickUpLocation.coordinates != null && activeRequest.pickUpLocation.coordinates.length > 0 ? activeRequest.pickUpLocation.coordinates[0] : 0.0}"
-                                  th:text="${activeRequest.pickUpLocation != null && activeRequest.pickUpLocation.coordinates != null && activeRequest.pickUpLocation.coordinates.length > 1 ? activeRequest.pickUpLocation.coordinates[1] + ', ' + activeRequest.pickUpLocation.coordinates[0] : 'N/A'}">19.076, 72.877</span>
-                        </div>
-                        <div class="flex justify-between border-b border-gray-950 pb-2">
-                            <span class="text-gray-500">Dropoff Location</span>
-                            <span id="dropoff-location-display" class="text-white font-medium text-right max-w-[65%] break-words"
-                                  th:data-lat="${activeRequest.dropOffLocation != null && activeRequest.dropOffLocation.coordinates != null && activeRequest.dropOffLocation.coordinates.length > 1 ? activeRequest.dropOffLocation.coordinates[1] : 0.0}"
-                                  th:data-lng="${activeRequest.dropOffLocation != null && activeRequest.dropOffLocation.coordinates != null && activeRequest.dropOffLocation.coordinates.length > 0 ? activeRequest.dropOffLocation.coordinates[0] : 0.0}"
-                                  th:text="${activeRequest.dropOffLocation != null && activeRequest.dropOffLocation.coordinates != null && activeRequest.dropOffLocation.coordinates.length > 1 ? activeRequest.dropOffLocation.coordinates[1] + ', ' + activeRequest.dropOffLocation.coordinates[0] : 'N/A'}">19.120, 72.900</span>
-                        </div>
-                        <div class="flex justify-between border-b border-gray-950 pb-2">
-                            <span class="text-gray-500">Payment Option</span>
-                            <span class="text-white font-semibold" th:text="${activeRequest.paymentMethod}">WALLET</span>
-                        </div>
-                        <div class="flex justify-between pt-2">
-                            <span class="text-gray-500 text-sm">Calculated Fare</span>
-                            <span class="text-sm text-emerald-400 font-extrabold" th:text="'₹' + ${activeRequest.fare != null ? #numbers.formatDecimal(activeRequest.fare, 1, 2) : '0.00'}">₹18.50</span>
+                        <div class="flex items-start space-x-2">
+                            <i class="fa-solid fa-flag-checkered text-emerald-500 dark:text-emerald-400 mt-0.5 text-xs shrink-0"></i>
+                            <div class="flex-grow">
+                                <span class="text-slate-500 dark:text-gray-500 text-[10px] uppercase font-semibold block">Dropoff</span>
+                                <span id="dropoff-location-display" class="text-slate-800 dark:text-gray-300 text-xs break-words"
+                                      th:data-lat="${activeRequest.dropOffLocation != null and activeRequest.dropOffLocation.coordinates != null ? activeRequest.dropOffLocation.coordinates[1] : ''}"
+                                      th:data-lng="${activeRequest.dropOffLocation != null and activeRequest.dropOffLocation.coordinates != null ? activeRequest.dropOffLocation.coordinates[0] : ''}"
+                                      th:text="${activeRequest.dropOffLocation != null and activeRequest.dropOffLocation.coordinates != null ? activeRequest.dropOffLocation.coordinates[1] + ', ' + activeRequest.dropOffLocation.coordinates[0] : 'Dropoff Location'}">Dropoff Location</span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Cancel / Reset Search -->
+                    <!-- Cancel / Reset Search (Screenshot 1: Red outline button with ⓧ icon) -->
                     <form th:action="@{/rider/cancelRequest}" method="POST" id="cancel-search-form">
-                        <button type="submit"
-                                class="w-full py-3 rounded-lg bg-red-600 hover:bg-red-700 border border-red-600 text-white font-semibold text-sm transition btn-cancel shadow-md hover:shadow-lg">
-                            Cancel Ride Search
+                        <button type="button" onclick="confirmCancelForm('cancel-search-form', 'Are you sure you want to cancel this ride request?')"
+                                class="w-full py-3.5 rounded-2xl bg-transparent hover:bg-rose-500/10 border-2 border-rose-500/80 hover:border-rose-500 text-rose-500 hover:text-rose-400 font-bold text-sm transition flex items-center justify-center space-x-2">
+                            <i class="fa-regular fa-circle-xmark text-base"></i>
+                            <span>Cancel Request</span>
                         </button>
                     </form>
                 </div>
 
-                <!-- VIEW C: Active Ride Screen (when active ride exists) -->
-                <div th:if="${activeRide != null}" class="glass-card p-8 rounded-2xl shadow-2xl text-center space-y-8">
-                    <!-- Heading -->
-                    <div class="space-y-2">
-                        <h2 class="text-2xl font-bold text-indigo-400">Driver Allotted &amp; En Route</h2>
-                        <p class="text-xs text-gray-400">Your ride is currently active. Meet your driver at the pickup location.</p>
-                    </div>
-
-                    <!-- Driver Card -->
-                    <div class="p-6 rounded-xl bg-gray-900/60 border border-gray-800 text-left space-y-4">
-                        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider block border-b border-gray-950 pb-2">Driver &amp; Vehicle Details</span>
-                        <div class="grid grid-cols-2 gap-4 text-xs">
-                            <div class="space-y-1">
-                                <span class="text-gray-500 block">Driver Name</span>
-                                <span class="text-white font-medium block" th:text="${activeRide.driver != null && activeRide.driver.user != null ? activeRide.driver.user.name : 'Driver Assigned'}">John Doe</span>
-                            </div>
-                            <div class="space-y-1">
-                                <span class="text-gray-500 block">Driver Phone</span>
-                                <span class="text-white font-medium block font-mono" th:text="${activeRide.driver != null ? activeRide.driver.phoneNumber : 'N/A'}">+919876543210</span>
-                            </div>
-                            <div class="space-y-1">
-                                <span class="text-gray-500 block">Vehicle Type &amp; Model</span>
-                                <span class="text-white font-medium block capitalize" th:text="${(activeRide.vehicleType != null ? activeRide.vehicleType : 'Car') + (activeRide.driver != null && activeRide.driver.vehicleId != null ? ' - ' + activeRide.driver.vehicleId : '')}">Car - 12345</span>
-                            </div>
-                            <div class="space-y-1">
-                                <span class="text-gray-500 block">Driver Rating</span>
-                                <span class="text-amber-400 font-bold block">
-                                    <i class="fa-solid fa-star text-amber-500 mr-1"></i>
-                                    <span th:text="${activeRide.driver != null && activeRide.driver.rating != null ? (activeRide.driver.rating == 0.0 ? 'New Driver' : #numbers.formatDecimal(activeRide.driver.rating, 1, 1)) : 'New Driver'}">4.5</span>
-                                </span>
-                            </div>
+                <!-- VIEW C: Active Ride Screen (matches user reference Screenshots 2 & 3) -->
+                <div th:if="${activeRide != null}" class="glass-card p-4 sm:p-6 lg:p-8 rounded-2xl shadow-2xl space-y-6">
+                    <!-- Top Bar: Badge, Payment & Fare -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-900 pb-4">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/30 text-xs font-bold uppercase tracking-wider">
+                                <i class="fa-solid fa-car-side mr-1.5"></i> ACTIVE RIDE
+                            </span>
+                            <span th:if="${activeRide.paymentMethod != null and #strings.toString(activeRide.paymentMethod) == 'WALLET'}"
+                                  class="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold">
+                                ✅ Paid via Wallet
+                            </span>
+                            <span th:if="${activeRide.paymentMethod != null and #strings.toString(activeRide.paymentMethod) == 'UPI'}"
+                                  class="px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs font-semibold">
+                                📱 Pay via UPI
+                            </span>
+                            <span th:if="${activeRide.paymentMethod != null and #strings.toString(activeRide.paymentMethod) == 'CASH'}"
+                                  class="px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20 text-xs font-semibold">
+                                💵 Cash Payment
+                            </span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-gray-400 block font-medium">Total Fare</span>
+                            <span class="text-2xl font-black text-orange-500 tracking-tight" th:text="'₹' + ${activeRide.fare != null ? #numbers.formatDecimal(activeRide.fare, 1, 2) : '0.00'}">₹255.03</span>
                         </div>
                     </div>
 
-                    <!-- Details Card -->
-                    <div class="p-6 rounded-xl bg-gray-900/40 border border-gray-900 text-left space-y-4 text-xs">
-                        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider block border-b border-gray-950 pb-2">Ride Info</span>
-                        <div class="flex justify-between border-b border-gray-950 pb-2">
-                            <span class="text-gray-500">Ride ID</span>
-                            <span class="font-mono text-indigo-400 font-bold" th:text="'#' + ${activeRide.id}">#12</span>
+                    <!-- Allotted Driver & Vehicle Card -->
+                    <div class="space-y-3 text-left">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xl font-bold text-white capitalize flex items-center gap-2">
+                                <i class="fa-solid fa-taxi text-indigo-400"></i>
+                                <span th:text="${activeRide.vehicleType != null ? activeRide.vehicleType : 'RideMesh Express'}">RideMesh Express</span>
+                            </h3>
+                            <span class="text-[11px] font-mono text-gray-500" th:text="'Ride ID: #' + ${activeRide.id != null ? #numbers.formatInteger(activeRide.id, 5) : '00000'}">Ride ID: #00001</span>
                         </div>
-                        <div class="flex justify-between border-b border-gray-950 pb-2">
-                            <span class="text-gray-500">Pickup Location</span>
-                            <span id="pickup-location-display" class="text-white font-medium text-right max-w-[65%] break-words"
-                                  th:data-lat="${activeRide.pickUpLocation != null && activeRide.pickUpLocation.coordinates != null && activeRide.pickUpLocation.coordinates.length > 1 ? activeRide.pickUpLocation.coordinates[1] : 0.0}"
-                                  th:data-lng="${activeRide.pickUpLocation != null && activeRide.pickUpLocation.coordinates != null && activeRide.pickUpLocation.coordinates.length > 0 ? activeRide.pickUpLocation.coordinates[0] : 0.0}"
-                                  th:text="${activeRide.pickUpLocation != null && activeRide.pickUpLocation.coordinates != null && activeRide.pickUpLocation.coordinates.length > 1 ? activeRide.pickUpLocation.coordinates[1] + ', ' + activeRide.pickUpLocation.coordinates[0] : 'N/A'}">19.076, 72.877</span>
-                        </div>
-                        <div class="flex justify-between border-b border-gray-950 pb-2">
-                            <span class="text-gray-500">Dropoff Location</span>
-                            <span id="dropoff-location-display" class="text-white font-medium text-right max-w-[65%] break-words"
-                                  th:data-lat="${activeRide.dropOffLocation != null && activeRide.dropOffLocation.coordinates != null && activeRide.dropOffLocation.coordinates.length > 1 ? activeRide.dropOffLocation.coordinates[1] : 0.0}"
-                                  th:data-lng="${activeRide.dropOffLocation != null && activeRide.dropOffLocation.coordinates != null && activeRide.dropOffLocation.coordinates.length > 0 ? activeRide.dropOffLocation.coordinates[0] : 0.0}"
-                                  th:text="${activeRide.dropOffLocation != null && activeRide.dropOffLocation.coordinates != null && activeRide.dropOffLocation.coordinates.length > 1 ? activeRide.dropOffLocation.coordinates[1] + ', ' + activeRide.dropOffLocation.coordinates[0] : 'N/A'}">19.120, 72.900</span>
-                        </div>
-                        <div class="flex justify-between border-b border-gray-950 pb-2">
-                            <span class="text-gray-500">Payment Option</span>
-                            <span class="text-white font-semibold" th:text="${activeRide.paymentMethod}">WALLET</span>
-                        </div>
-                        <div class="flex justify-between border-b border-gray-950 pb-2">
-                            <span class="text-gray-500">Ride Status</span>
-                            <span class="text-indigo-400 font-bold" th:text="${activeRide.status}">ONGOING</span>
-                        </div>
-                        <div class="flex justify-between pt-2">
-                            <span class="text-gray-500 text-sm">Fare Price</span>
-                            <span class="text-sm text-emerald-400 font-extrabold" th:text="'₹' + ${activeRide.fare != null ? #numbers.formatDecimal(activeRide.fare, 1, 2) : '0.00'}">₹18.50</span>
-                        </div>
-                    </div>
 
-                    <!-- Actions -->
-                    <div class="space-y-4">
-                        <!-- Complete Ride Button (Only for WALLET payments) -->
-                        <form th:if="${#strings.toString(activeRide.paymentMethod) == 'WALLET'}" 
-                              th:action="@{/rider/completeRide/{id}(id=${activeRide.id})}" method="POST" onsubmit="return showNotImplementedModal(event)">
-                            <button type="submit" th:disabled="${activeRide.riderCompleted == true}"
-                                    class="w-full py-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition shadow-lg hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed">
-                                <span th:text="${activeRide.riderCompleted == true ? 'Waiting for Driver Confirmation...' : 'Confirm Ride Completion'}">Confirm Ride Completion</span>
+                        <!-- Allotted Driver Details & Timing -->
+                        <div class="p-4 rounded-xl bg-white dark:bg-gray-950/70 border border-slate-200 dark:border-gray-900 space-y-3 text-xs shadow-sm">
+                            <div class="flex items-center justify-between flex-wrap gap-2">
+                                <div class="flex items-center space-x-3 text-slate-900 dark:text-white">
+                                    <div class="w-10 h-10 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-sm font-bold">
+                                        <i class="fa-solid fa-id-badge"></i>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-500 dark:text-gray-400 text-[11px] block">Assigned Worker</span>
+                                        <span class="font-bold text-slate-900 dark:text-white text-sm" th:text="${activeRide.driver != null and activeRide.driver.user != null ? activeRide.driver.user.name : 'Driver Name'}">Driver Name</span>
+                                        <div class="flex items-center flex-wrap gap-2 mt-1">
+                                            <span class="text-slate-500 dark:text-gray-400 font-mono text-[11px]" th:text="${activeRide.driver != null and activeRide.driver.vehicleId != null ? activeRide.driver.vehicleId : 'Plate: Pending'}">MH 12 AB 1234</span>
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-bold text-[11px]">
+                                                <i class="fa-solid fa-star text-amber-500 text-[10px]"></i>
+                                                <span th:text="${activeRide.driver != null and activeRide.driver.rating != null and activeRide.driver.rating > 0.0 ? (#numbers.formatDecimal(activeRide.driver.rating, 1, 1) + ' Driver Rating') : '5.0 Driver Rating (New)'}">4.5 Driver Rating</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-right text-slate-500 dark:text-gray-400 text-[11px] flex items-center gap-1.5 font-mono">
+                                    <i class="fa-regular fa-clock text-slate-400 dark:text-gray-500"></i>
+                                    <span th:text="${activeRide.createdTime != null ? #temporals.format(activeRide.createdTime, 'dd MMM yyyy, HH:mm') : 'Today'}">Today</span>
+                                </div>
+                            </div>
+
+                            <!-- Route Addresses -->
+                            <div class="space-y-2 pt-2 border-t border-slate-200 dark:border-gray-900">
+                                <div class="flex items-start space-x-2">
+                                    <i class="fa-solid fa-location-dot text-rose-500 mt-0.5 text-sm shrink-0"></i>
+                                    <div class="flex-grow">
+                                        <span class="text-slate-500 dark:text-gray-500 text-[10px] uppercase font-semibold block">Pickup Location</span>
+                                        <span id="active-pickup-display" class="text-slate-800 dark:text-gray-200 text-xs break-words"
+                                              th:data-lat="${activeRide.pickUpLocation != null and activeRide.pickUpLocation.coordinates != null ? activeRide.pickUpLocation.coordinates[1] : ''}"
+                                              th:data-lng="${activeRide.pickUpLocation != null and activeRide.pickUpLocation.coordinates != null ? activeRide.pickUpLocation.coordinates[0] : ''}"
+                                              th:text="${activeRide.pickUpLocation != null and activeRide.pickUpLocation.coordinates != null ? activeRide.pickUpLocation.coordinates[1] + ', ' + activeRide.pickUpLocation.coordinates[0] : 'Pickup Location'}">Pickup Location</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-start space-x-2">
+                                    <i class="fa-solid fa-flag-checkered text-emerald-500 dark:text-emerald-400 mt-0.5 text-sm shrink-0"></i>
+                                    <div class="flex-grow">
+                                        <span class="text-slate-500 dark:text-gray-500 text-[10px] uppercase font-semibold block">Dropoff Destination</span>
+                                        <span id="active-dropoff-display" class="text-slate-800 dark:text-gray-200 text-xs break-words"
+                                              th:data-lat="${activeRide.dropOffLocation != null and activeRide.dropOffLocation.coordinates != null ? activeRide.dropOffLocation.coordinates[1] : ''}"
+                                              th:data-lng="${activeRide.dropOffLocation != null and activeRide.dropOffLocation.coordinates != null ? activeRide.dropOffLocation.coordinates[0] : ''}"
+                                              th:text="${activeRide.dropOffLocation != null and activeRide.dropOffLocation.coordinates != null ? activeRide.dropOffLocation.coordinates[1] + ', ' + activeRide.dropOffLocation.coordinates[0] : 'Dropoff Location'}">Dropoff Location</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Side-by-Side Action Buttons: Track Route, Call Driver & Report Driver -->
+                        <div class="grid grid-cols-3 gap-2.5 pt-1">
+                            <a th:href="${activeRide.pickUpLocation != null and activeRide.pickUpLocation.coordinates != null and activeRide.dropOffLocation != null and activeRide.dropOffLocation.coordinates != null ? 'https://www.google.com/maps/dir/?api=1&origin=' + activeRide.pickUpLocation.coordinates[1] + ',' + activeRide.pickUpLocation.coordinates[0] + '&destination=' + activeRide.dropOffLocation.coordinates[1] + ',' + activeRide.dropOffLocation.coordinates[0] : '#'}"
+                               target="_blank"
+                               class="py-3 px-2 rounded-xl border border-orange-500/40 hover:bg-orange-500/10 text-orange-500 dark:text-orange-400 font-semibold text-xs flex items-center justify-center space-x-1.5 transition shadow-sm bg-white dark:bg-transparent">
+                                <i class="fa-solid fa-map-location-dot text-sm"></i>
+                                <span>Track</span>
+                            </a>
+                            <a th:href="'tel:' + (${activeRide.driver != null and activeRide.driver.phoneNumber != null ? activeRide.driver.phoneNumber : '+919988776655'})"
+                               class="py-3 px-2 rounded-xl border border-orange-500/40 hover:bg-orange-500/10 text-orange-500 dark:text-orange-400 font-semibold text-xs flex items-center justify-center space-x-1.5 transition shadow-sm bg-white dark:bg-transparent">
+                                <i class="fa-solid fa-phone text-sm"></i>
+                                <span>Call</span>
+                            </a>
+                            <button type="button"
+                                    th:data-ride-id="${activeRide.id}"
+                                    th:data-driver-id="${activeRide.driver != null ? activeRide.driver.id : ''}"
+                                    th:data-driver-name="${activeRide.driver != null and activeRide.driver.user != null ? activeRide.driver.user.name : 'Driver'}"
+                                    onclick="openActiveRideReportModal(this.getAttribute('data-ride-id'), this.getAttribute('data-driver-id'), this.getAttribute('data-driver-name'))"
+                                    class="py-3 px-2 rounded-xl border border-rose-500/40 hover:bg-rose-500/15 text-rose-500 dark:text-rose-400 font-semibold text-xs flex items-center justify-center space-x-1.5 transition shadow-sm bg-white dark:bg-transparent">
+                                <i class="fa-solid fa-triangle-exclamation text-sm"></i>
+                                <span>Report</span>
                             </button>
-                        </form>
-                        
-                        <div th:if="${#strings.toString(activeRide.paymentMethod) == 'CASH'}" 
-                             class="p-3.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold">
-                            <i class="fa-solid fa-money-bill-wave text-emerald-600 mr-1"></i> Cash Payment: Driver will confirm completion and record the transaction.
+                        </div>
+                    </div>
+
+                    <!-- Prominent Start Ride OTP PIN (displayed when ride is ACCEPTED or CONFIRMED) -->
+                    <div th:if="${activeRide.status != null and (#strings.toString(activeRide.status) == 'ACCEPTED' or #strings.toString(activeRide.status) == 'CONFIRMED')}" class="p-4 sm:p-5 rounded-2xl bg-orange-500/10 border border-orange-500/30 text-center space-y-2">
+                        <div class="flex items-center justify-center space-x-2 text-orange-500 dark:text-orange-400 text-xs font-semibold">
+                            <i class="fa-solid fa-shield-halved text-sm"></i>
+                            <span>BOARDING OTP PIN</span>
+                        </div>
+                        <p class="text-xs text-slate-600 dark:text-gray-300">Share this 4-digit OTP with your driver when boarding to begin your trip:</p>
+                        <div class="inline-block px-6 py-2 rounded-xl bg-orange-500/20 border border-orange-500/50 text-orange-500 dark:text-orange-400 text-3xl font-black tracking-widest font-mono shadow-inner"
+                             th:text="${activeRide.otp != null ? activeRide.otp : '----'}">
+                            0425
+                        </div>
+                    </div>
+
+                    <!-- 4-Stage Progress Stepper (matches Screenshots 1 & 2) -->
+                    <div class="p-4 sm:p-5 rounded-xl bg-white dark:bg-gray-950/50 border border-slate-200 dark:border-gray-900 space-y-3 shadow-sm">
+                        <span class="text-[10px] text-slate-500 dark:text-gray-500 uppercase tracking-wider font-semibold block text-left">Ride Lifecycle Status</span>
+                        <div class="flex items-center justify-between relative px-2">
+                            <!-- Connecting Line Background -->
+                            <div class="absolute left-6 right-6 top-3 h-0.5 bg-slate-200 dark:bg-gray-800 -z-0"></div>
+                            <!-- Active connecting line -->
+                            <div class="absolute left-6 top-3 h-0.5 bg-orange-500 transition-all duration-500 -z-0"
+                                 th:style="${activeRide.status != null and (#strings.toString(activeRide.status) == 'ACCEPTED' or #strings.toString(activeRide.status) == 'CONFIRMED') ? 'width: 33%;' : (activeRide.status != null and (#strings.toString(activeRide.status) == 'IN_PROGRESS' or #strings.toString(activeRide.status) == 'ONGOING') ? 'width: 66%;' : (activeRide.status != null and #strings.toString(activeRide.status) == 'PENDING_CUSTOMER_APPROVAL' ? 'width: 80%;' : 'width: 100%;'))}"></div>
+
+                            <!-- Step 1: Requested -->
+                            <div class="flex flex-col items-center relative z-10 space-y-1">
+                                <div class="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-[10px] font-bold shadow-sm">
+                                    <i class="fa-solid fa-check"></i>
+                                </div>
+                                <span class="text-[10px] text-slate-700 dark:text-gray-300 font-medium">Requested</span>
+                            </div>
+
+                            <!-- Step 2: Accepted -->
+                            <div class="flex flex-col items-center relative z-10 space-y-1">
+                                <div th:class="${activeRide.status != null and (#strings.toString(activeRide.status) == 'ACCEPTED' or #strings.toString(activeRide.status) == 'CONFIRMED') ? 'w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-[10px] font-bold ring-4 ring-orange-500/20 shadow-md' : 'w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-[10px] font-bold'}">
+                                    <i th:class="${activeRide.status != null and (#strings.toString(activeRide.status) == 'ACCEPTED' or #strings.toString(activeRide.status) == 'CONFIRMED') ? 'fa-solid fa-circle text-[7px] text-white' : 'fa-solid fa-check'}"></i>
+                                </div>
+                                <span th:class="${activeRide.status != null and (#strings.toString(activeRide.status) == 'ACCEPTED' or #strings.toString(activeRide.status) == 'CONFIRMED') ? 'text-[10px] text-orange-500 dark:text-orange-400 font-bold' : 'text-[10px] text-slate-700 dark:text-gray-300 font-medium'}">Accepted</span>
+                            </div>
+
+                            <!-- Step 3: In Progress -->
+                            <div class="flex flex-col items-center relative z-10 space-y-1">
+                                <div th:class="${activeRide.status != null and (#strings.toString(activeRide.status) == 'IN_PROGRESS' or #strings.toString(activeRide.status) == 'ONGOING') ? 'w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-[10px] font-bold ring-4 ring-orange-500/20 shadow-md' : (activeRide.status != null and (#strings.toString(activeRide.status) == 'PENDING_CUSTOMER_APPROVAL' or #strings.toString(activeRide.status) == 'COMPLETED') ? 'w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-[10px] font-bold' : 'w-6 h-6 rounded-full bg-slate-100 dark:bg-gray-800 text-slate-400 dark:text-gray-500 border border-slate-200 dark:border-transparent flex items-center justify-center text-[10px] font-bold')}">
+                                    <i th:class="${activeRide.status != null and (#strings.toString(activeRide.status) == 'IN_PROGRESS' or #strings.toString(activeRide.status) == 'ONGOING') ? 'fa-solid fa-circle text-[7px] text-white' : (activeRide.status != null and (#strings.toString(activeRide.status) == 'PENDING_CUSTOMER_APPROVAL' or #strings.toString(activeRide.status) == 'COMPLETED') ? 'fa-solid fa-check' : 'fa-solid fa-circle text-[6px] text-slate-300 dark:text-gray-600')}"></i>
+                                </div>
+                                <span th:class="${activeRide.status != null and (#strings.toString(activeRide.status) == 'IN_PROGRESS' or #strings.toString(activeRide.status) == 'ONGOING') ? 'text-[10px] text-orange-500 dark:text-orange-400 font-bold' : (activeRide.status != null and (#strings.toString(activeRide.status) == 'PENDING_CUSTOMER_APPROVAL' or #strings.toString(activeRide.status) == 'COMPLETED') ? 'text-[10px] text-slate-700 dark:text-gray-300 font-medium' : 'text-[10px] text-slate-400 dark:text-gray-500')}">In Progress</span>
+                            </div>
+
+                            <!-- Step 4: Completed -->
+                            <div class="flex flex-col items-center relative z-10 space-y-1">
+                                <div th:class="${activeRide.status != null and #strings.toString(activeRide.status) == 'COMPLETED' ? 'w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold ring-4 ring-emerald-500/20' : (activeRide.status != null and #strings.toString(activeRide.status) == 'PENDING_CUSTOMER_APPROVAL' ? 'w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-[10px] font-bold animate-pulse' : 'w-6 h-6 rounded-full bg-slate-100 dark:bg-gray-800 text-slate-400 dark:text-gray-500 border border-slate-200 dark:border-transparent flex items-center justify-center text-[10px] font-bold')}">
+                                    <i th:class="${activeRide.status != null and #strings.toString(activeRide.status) == 'COMPLETED' ? 'fa-solid fa-check' : (activeRide.status != null and #strings.toString(activeRide.status) == 'PENDING_CUSTOMER_APPROVAL' ? 'fa-solid fa-hourglass-half' : 'fa-solid fa-flag-checkered')}"></i>
+                                </div>
+                                <span th:class="${activeRide.status != null and #strings.toString(activeRide.status) == 'COMPLETED' ? 'text-[10px] text-emerald-600 dark:text-emerald-400 font-bold' : (activeRide.status != null and #strings.toString(activeRide.status) == 'PENDING_CUSTOMER_APPROVAL' ? 'text-[10px] text-orange-500 dark:text-orange-400 font-bold' : 'text-[10px] text-slate-400 dark:text-gray-500')}">Completed</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- In Progress Alert Banner -->
+                    <div th:if="${activeRide.status != null and (#strings.toString(activeRide.status) == 'IN_PROGRESS' or #strings.toString(activeRide.status) == 'ONGOING')}" 
+                         class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center justify-center space-x-2 font-semibold">
+                        <i class="fa-solid fa-route text-sm animate-pulse"></i>
+                        <span>Ride in Progress! Driver is en route to dropoff destination.</span>
+                    </div>
+
+                    <!-- CUSTOMER APPROVAL PROMPT (When status is PENDING_CUSTOMER_APPROVAL) -->
+                    <div th:if="${activeRide.status != null and #strings.toString(activeRide.status) == 'PENDING_CUSTOMER_APPROVAL'}"
+                         th:with="isWalletMethod=${activeRide.paymentMethod != null and #strings.toString(activeRide.paymentMethod) == 'WALLET'}, hasLowBalance=${activeRide.paymentMethod != null and #strings.toString(activeRide.paymentMethod) == 'WALLET' and (wallet == null or wallet.balance == null or wallet.balance < activeRide.fare)}"
+                         class="p-5 sm:p-6 rounded-2xl bg-orange-500/10 dark:bg-orange-500/15 border-2 border-orange-500/60 text-center space-y-4 shadow-xl">
+                        <div class="w-12 h-12 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-400 flex items-center justify-center mx-auto text-xl">
+                            <i class="fa-solid fa-clipboard-check"></i>
+                        </div>
+                        <div class="space-y-1">
+                            <h4 class="text-base font-bold text-slate-900 dark:text-white">Worker has completed the work.</h4>
+                            <p class="text-xs text-orange-950 dark:text-orange-200/90 font-medium">Please inspect and confirm to finalize service completion.</p>
                         </div>
 
-                        <!-- Cancel Ride Button -->
-                        <form th:action="@{/rider/cancelRide/{id}(id=${activeRide.id})}" method="POST" onsubmit="return showNotImplementedModal(event)">
-                            <button type="submit"
-                                    class="w-full py-3 rounded-lg bg-red-600 hover:bg-red-700 border border-red-600 text-white font-semibold text-sm transition btn-cancel shadow-md hover:shadow-lg">
-                                Cancel Ride
+                        <!-- Insufficient Balance Warning Banner (if WALLET payment and balance < fare) -->
+                        <div th:if="${hasLowBalance}"
+                             class="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/40 text-left space-y-2">
+                            <div class="flex items-center space-x-2 text-rose-600 dark:text-rose-400 font-bold text-xs">
+                                <i class="fa-solid fa-triangle-exclamation text-sm"></i>
+                                <span>Insufficient Wallet Balance</span>
+                            </div>
+                            <p class="text-xs text-slate-600 dark:text-rose-200/90 leading-relaxed">
+                                Your wallet balance is <strong th:text="'₹' + ${#numbers.formatDecimal(wallet != null and wallet.balance != null ? wallet.balance : 0, 1, 2)}">₹0.00</strong>, but the ride amount is <strong th:text="'₹' + ${#numbers.formatDecimal(activeRide.fare, 1, 2)}">₹0.00</strong>. Please load funds into your wallet to confirm completion.
+                            </p>
+                            <div class="pt-1">
+                                <a th:href="@{/rider/wallet}"
+                                   class="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs transition shadow-md shadow-orange-500/20">
+                                    <i class="fa-solid fa-wallet"></i>
+                                    <span>Load Funds Now</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Disabled / Grayed-out Button when Insufficient Balance -->
+                        <div th:if="${hasLowBalance}">
+                            <button type="button" disabled
+                                    class="w-full py-3.5 px-6 rounded-xl bg-slate-200 dark:bg-gray-800 text-slate-400 dark:text-gray-500 font-bold text-sm cursor-not-allowed border border-slate-300 dark:border-gray-700 flex items-center justify-center space-x-2 opacity-60">
+                                <i class="fa-solid fa-lock text-base"></i>
+                                <span>Confirm &amp; Complete (Insufficient Balance)</span>
+                            </button>
+                        </div>
+
+                        <!-- Active Clickable Confirm Button when Balance is Sufficient or other method -->
+                        <div th:if="${!hasLowBalance}">
+                            <form th:action="@{/rider/completeRide/{id}(id=${activeRide.id})}" method="POST">
+                                <button type="submit"
+                                        class="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm transition shadow-lg shadow-emerald-600/30 flex items-center justify-center space-x-2 hover:scale-[1.01]">
+                                    <i class="fa-solid fa-circle-check text-base"></i>
+                                    <span>Confirm &amp; Complete</span>
+                                </button>
+                            </form>
+                        </div>
+
+                        <p class="text-[11px] text-gray-400 font-mono">
+                            <i class="fa-regular fa-clock mr-1"></i>
+                            If not confirmed, system automatically transitions to Completed after 12 hours.
+                        </p>
+                    </div>
+
+                    <!-- COMPLETED RIDE PAYMENT / CONFIRMATION SECTION -->
+                    <div th:if="${activeRide.status != null and (#strings.toString(activeRide.status) == 'COMPLETED' or #strings.toString(activeRide.status) == 'PAYMENT_COMPLETED')}" class="space-y-4">
+                        <!-- Case 1: UPI Payment via Razorpay (when COMPLETED and waiting for UPI payment) -->
+                        <div th:if="${activeRide.paymentMethod != null and #strings.toString(activeRide.paymentMethod) == 'UPI' and #strings.toString(activeRide.status) == 'COMPLETED'}"
+                             class="p-5 sm:p-6 rounded-2xl bg-indigo-950/40 border-2 border-indigo-500/50 text-center space-y-4 shadow-xl">
+                            <div class="w-12 h-12 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-400 flex items-center justify-center mx-auto text-xl">
+                                <i class="fa-solid fa-mobile-screen-button"></i>
+                            </div>
+                            <div class="space-y-1">
+                                <h4 class="text-base font-bold text-white">Ride Completed! Pay via UPI</h4>
+                                <p class="text-xs text-indigo-200/90 font-medium">Both sides have confirmed ride completion. Click below to pay the trip fare securely via UPI directly from your bank.</p>
+                                <div class="text-2xl font-black text-indigo-400 pt-1" th:text="'₹' + ${#numbers.formatDecimal(activeRide.fare, 1, 2)}">₹250.00</div>
+                            </div>
+                            <button type="button" id="pay-upi-btn" onclick="initiateUpiPayment()"
+                                    class="w-full py-4 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-sm transition shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-2 hover:scale-[1.01]">
+                                <i class="fa-solid fa-bolt text-orange-400"></i>
+                                <span>Pay via UPI (Razorpay)</span>
+                            </button>
+                            <div id="upi-loading" class="hidden text-xs text-indigo-300 flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-circle-notch fa-spin"></i>
+                                <span>Opening Razorpay UPI checkout...</span>
+                            </div>
+                            <div id="upi-error" class="hidden p-3 rounded-lg bg-rose-950/60 border border-rose-500/40 text-rose-400 text-xs"></div>
+                        </div>
+
+                        <!-- Case 1b: UPI Payment Successful (when PAYMENT_COMPLETED) -->
+                        <div th:if="${activeRide.paymentMethod != null and #strings.toString(activeRide.paymentMethod) == 'UPI' and #strings.toString(activeRide.status) == 'PAYMENT_COMPLETED'}"
+                             class="p-5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-center space-y-2">
+                            <div class="flex items-center justify-center space-x-2 text-emerald-400 font-bold text-sm">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>UPI Payment Successful!</span>
+                            </div>
+                            <p class="text-xs text-gray-300">Payment was sent directly from your bank and credited to your driver's wallet.</p>
+                        </div>
+
+                        <!-- Case 2: Cash Payment confirmation (when COMPLETED) -->
+                        <div th:if="${activeRide.paymentMethod != null and #strings.toString(activeRide.paymentMethod) == 'CASH' and #strings.toString(activeRide.status) == 'COMPLETED'}"
+                             class="p-5 sm:p-6 rounded-2xl bg-orange-500/15 border-2 border-orange-500/50 text-center space-y-4 shadow-xl">
+                            <div class="w-12 h-12 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-400 flex items-center justify-center mx-auto text-xl">
+                                <i class="fa-solid fa-hand-holding-dollar"></i>
+                            </div>
+                            <div class="space-y-1">
+                                <h4 class="text-base font-bold text-white">Ride Completed! Pay Cash to Driver</h4>
+                                <p class="text-xs text-orange-200/90 font-medium">Please pay ₹<span th:text="${#numbers.formatDecimal(activeRide.fare, 1, 2)}">0.00</span> in cash to the driver, then click Paid to confirm.</p>
+                            </div>
+                            <div th:if="${activeRide.cashPaid != true}">
+                                <form th:action="@{/rider/confirmCashPaid/{id}(id=${activeRide.id})}" method="POST">
+                                    <button type="submit"
+                                            class="w-full py-4 px-6 rounded-xl bg-orange-500 hover:bg-orange-400 text-white font-extrabold text-sm transition shadow-lg shadow-orange-500/30 flex items-center justify-center space-x-2 hover:scale-[1.01]">
+                                        <i class="fa-solid fa-circle-check text-base"></i>
+                                        <span>Paid</span>
+                                    </button>
+                                </form>
+                            </div>
+                            <div th:if="${activeRide.cashPaid == true}" class="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-check"></i>
+                                <span>You clicked Paid! Waiting for driver to confirm payment received.</span>
+                            </div>
+                        </div>
+
+                        <!-- Case 2b: Cash Payment Completed (when PAYMENT_COMPLETED) -->
+                        <div th:if="${activeRide.paymentMethod != null and #strings.toString(activeRide.paymentMethod) == 'CASH' and #strings.toString(activeRide.status) == 'PAYMENT_COMPLETED'}"
+                             class="p-5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-center space-y-2">
+                            <div class="flex items-center justify-center space-x-2 text-emerald-400 font-bold text-sm">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>Cash Payment Complete!</span>
+                            </div>
+                            <p class="text-xs text-gray-300">Driver has confirmed cash receipt. Thank you for riding with RideMesh!</p>
+                        </div>
+
+                        <!-- Case 3: Wallet Payment -->
+                        <div th:if="${activeRide.paymentMethod != null and #strings.toString(activeRide.paymentMethod) == 'WALLET'}"
+                             class="p-5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-center space-y-2">
+                            <div class="flex items-center justify-center space-x-2 text-emerald-400 font-bold text-sm">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>Payment Processed via Wallet!</span>
+                            </div>
+                            <p class="text-xs text-gray-300">Fare has been deducted from your wallet balance and credited to your driver.</p>
+                        </div>
+                    </div>
+
+                    <!-- Cancellation Section: ONLY allowed if REQUESTED or ACCEPTED -->
+                    <div th:if="${activeRide != null and activeRide.status != null and (#strings.toString(activeRide.status) == 'REQUESTED' or #strings.toString(activeRide.status) == 'ACCEPTED' or #strings.toString(activeRide.status) == 'CONFIRMED')}" 
+                         class="pt-2">
+                        <form th:action="@{/rider/cancelRide/{id}(id=${activeRide.id})}" method="POST" id="cancel-ride-form">
+                            <button type="button" onclick="confirmCancelForm('cancel-ride-form', 'Are you sure you want to cancel this active ride?')"
+                                    class="w-full py-3 rounded-2xl bg-transparent hover:bg-rose-500/10 border-2 border-rose-500/80 hover:border-rose-500 text-rose-500 hover:text-rose-400 font-bold text-xs transition flex items-center justify-center space-x-2">
+                                <i class="fa-regular fa-circle-xmark"></i>
+                                <span>Cancel Request</span>
                             </button>
                         </form>
                     </div>
@@ -329,19 +639,18 @@
     <!-- Script triggers -->
     <div th:replace="~{fragments/navigation :: navigationScripts}"></div>
 
-    <!-- Map & Booking Scripts (Only active when in Booking View) -->
-    <script th:if="${activeRequest == null && activeRide == null}">
+    <script th:if="${activeRequest == null and activeRide == null}">
         document.addEventListener("DOMContentLoaded", function() {
-            const pickupMapEl = document.getElementById('pickup-map');
-            const dropoffMapEl = document.getElementById('dropoff-map');
-            if (!pickupMapEl || !dropoffMapEl) return;
+            const pickupEl = document.getElementById('pickup-map');
+            const dropoffEl = document.getElementById('dropoff-map');
+            if (!pickupEl || !dropoffEl) return;
 
             // 1. Initialize maps
-            const initialPickup = [19.0760, 72.8777];
-            const initialDropoff = [19.1200, 72.9000];
+            const initialPickup = [19.107644, 72.836803];
+            const initialDropoff = [19.119705, 72.846081];
 
-            const pickupMap = L.map('pickup-map').setView(initialPickup, 13);
-            const dropoffMap = L.map('dropoff-map').setView(initialDropoff, 13);
+            const pickupMap = L.map('pickup-map').setView(initialPickup, 14);
+            const dropoffMap = L.map('dropoff-map').setView(initialDropoff, 14);
 
             // Add OpenStreetMap Tile Layers
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -352,16 +661,19 @@
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(dropoffMap);
 
+            setTimeout(function() {
+                pickupMap.invalidateSize();
+                dropoffMap.invalidateSize();
+            }, 300);
+
             // Add markers
             const pickupMarker = L.marker(initialPickup, { draggable: true }).addTo(pickupMap);
             const dropoffMarker = L.marker(initialDropoff, { draggable: true }).addTo(dropoffMap);
 
             // 2. Synchronizers: Map interaction -> Coordinates & Address
             function updatePickupLocation(lat, lng, doReverseGeocode = true) {
-                const latEl = document.getElementById('pickup-lat');
-                const lngEl = document.getElementById('pickup-lng');
-                if (latEl) latEl.value = lat.toFixed(6);
-                if (lngEl) lngEl.value = lng.toFixed(6);
+                document.getElementById('pickup-lat').value = lat.toFixed(6);
+                document.getElementById('pickup-lng').value = lng.toFixed(6);
                 pickupMarker.setLatLng([lat, lng]);
                 pickupMap.panTo([lat, lng]);
                 
@@ -371,10 +683,8 @@
             }
 
             function updateDropoffLocation(lat, lng, doReverseGeocode = true) {
-                const latEl = document.getElementById('dropoff-lat');
-                const lngEl = document.getElementById('dropoff-lng');
-                if (latEl) latEl.value = lat.toFixed(6);
-                if (lngEl) lngEl.value = lng.toFixed(6);
+                document.getElementById('dropoff-lat').value = lat.toFixed(6);
+                document.getElementById('dropoff-lng').value = lng.toFixed(6);
                 dropoffMarker.setLatLng([lat, lng]);
                 dropoffMap.panTo([lat, lng]);
 
@@ -407,13 +717,12 @@
             function setupCoordsInputSync(latId, lngId, updateFn) {
                 const latInput = document.getElementById(latId);
                 const lngInput = document.getElementById(lngId);
-                if (!latInput || !lngInput) return;
 
                 function onInput() {
                     const lat = parseFloat(latInput.value);
                     const lng = parseFloat(lngInput.value);
                     if (!isNaN(lat) && !isNaN(lng)) {
-                        updateFn(lat, lng, false);
+                        updateFn(lat, lng, false); // false to avoid loop, though it's safe
                     }
                 }
                 latInput.addEventListener('input', onInput);
@@ -430,8 +739,7 @@
                     .then(res => res.json())
                     .then(data => {
                         if (data && data.display_name) {
-                            const targetEl = document.getElementById(targetInputId);
-                            if (targetEl) targetEl.value = data.display_name;
+                            document.getElementById(targetInputId).value = data.display_name;
                         }
                     })
                     .catch(err => console.error("Reverse geocoding error:", err));
@@ -441,7 +749,6 @@
             function setupAutocomplete(inputId, suggestionsId, updateFn) {
                 const input = document.getElementById(inputId);
                 const suggestions = document.getElementById(suggestionsId);
-                if (!input || !suggestions) return;
                 let debounceTimer;
 
                 input.addEventListener('input', function() {
@@ -496,6 +803,21 @@
             reverseGeocode(initialPickup[0], initialPickup[1], 'pickup-search');
             reverseGeocode(initialDropoff[0], initialDropoff[1], 'dropoff-search');
             
+            // 6. Validation listener to keep Request Ride button disabled until both options are chosen
+            const vehicleSelect = document.getElementById('vehicleTypeSelect');
+            const paymentSelect = document.getElementById('paymentMethodSelect');
+            const requestBtn = document.getElementById('requestRideBtn');
+
+            function checkBookingValidity() {
+                if (!vehicleSelect || !paymentSelect || !requestBtn) return;
+                const hasVehicle = vehicleSelect.value && vehicleSelect.value.trim() !== "";
+                const hasPayment = paymentSelect.value && paymentSelect.value.trim() !== "";
+                requestBtn.disabled = !(hasVehicle && hasPayment);
+            }
+
+            if (vehicleSelect) vehicleSelect.addEventListener('change', checkBookingValidity);
+            if (paymentSelect) paymentSelect.addEventListener('change', checkBookingValidity);
+
             setTimeout(() => {
                 pickupMap.invalidateSize();
                 dropoffMap.invalidateSize();
@@ -503,17 +825,16 @@
         });
     </script>
 
-    <!-- Geocoding for Active Search or Active Ride Views -->
-    <script th:if="${activeRequest != null || activeRide != null}">
+    <script th:if="${activeRequest != null}">
         document.addEventListener("DOMContentLoaded", function() {
-            function reverseGeocodeActive(lat, lng, element) {
+            function reverseGeocodeActive(lat, lng, elementId) {
                 const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
                 fetch(url)
                     .then(res => res.json())
                     .then(data => {
                         if (data && data.display_name) {
                             const formattedCoords = `(${parseFloat(lat).toFixed(6)}, ${parseFloat(lng).toFixed(6)})`;
-                            element.innerText = `${data.display_name} ${formattedCoords}`;
+                            document.getElementById(elementId).innerText = `${data.display_name} ${formattedCoords}`;
                         }
                     })
                     .catch(err => console.error("Geocoding error:", err));
@@ -525,27 +846,19 @@
             if (pickupEl) {
                 const lat = pickupEl.getAttribute('data-lat');
                 const lng = pickupEl.getAttribute('data-lng');
-                if (lat && lng && parseFloat(lat) !== 0.0) {
-                    reverseGeocodeActive(lat, lng, pickupEl);
-                }
+                reverseGeocodeActive(lat, lng, 'pickup-location-display');
             }
 
             if (dropoffEl) {
                 const lat = dropoffEl.getAttribute('data-lat');
                 const lng = dropoffEl.getAttribute('data-lng');
-                if (lat && lng && parseFloat(lat) !== 0.0) {
-                    reverseGeocodeActive(lat, lng, dropoffEl);
-                }
+                reverseGeocodeActive(lat, lng, 'dropoff-location-display');
             }
-        });
-    </script>
 
-    <!-- Countdown Timer Script (Only when searching for drivers) -->
-    <script th:if="${activeRequest != null}" th:inline="javascript">
-        document.addEventListener("DOMContentLoaded", function() {
+            // Countdown timer interval logic
             const timerElement = document.getElementById("countdown-timer");
             if (timerElement) {
-                let remainingSeconds = /*[[${remainingSeconds != null ? remainingSeconds : 300}]]*/ 300;
+                let remainingSeconds = parseInt([[${remainingSeconds != null ? remainingSeconds : 300}]]);
                 
                 function formatTimer(sec) {
                     const m = Math.floor(sec / 60);
@@ -571,7 +884,388 @@
                     }
                 }, 1000);
             }
+
+            // Auto-polling for driver acceptance (every 2.5s)
+            const pollDriverAcceptance = setInterval(function() {
+                fetch('/rider/checkStatus')
+                    .then(function(res) { return res.json(); })
+                    .then(function(data) {
+                        if (data && data.hasActiveRide === true) {
+                            clearInterval(pollDriverAcceptance);
+                            window.location.reload();
+                        }
+                    })
+                    .catch(function(err) { console.error("Poll check error:", err); });
+            }, 2500);
         });
     </script>
+
+    <script th:if="${activeRide != null}">
+        document.addEventListener("DOMContentLoaded", function() {
+            function reverseGeocodeActive(lat, lng, elementId) {
+                const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
+                fetch(url)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.display_name) {
+                            const formattedCoords = `(${parseFloat(lat).toFixed(6)}, ${parseFloat(lng).toFixed(6)})`;
+                            const el = document.getElementById(elementId);
+                            if (el) el.innerText = `${data.display_name} ${formattedCoords}`;
+                        }
+                    })
+                    .catch(err => console.error("Geocoding error:", err));
+            }
+
+            const pickupEl = document.getElementById('active-pickup-display');
+            const dropoffEl = document.getElementById('active-dropoff-display');
+
+            if (pickupEl) {
+                const lat = pickupEl.getAttribute('data-lat');
+                const lng = pickupEl.getAttribute('data-lng');
+                reverseGeocodeActive(lat, lng, 'active-pickup-display');
+            }
+
+            if (dropoffEl) {
+                const lat = dropoffEl.getAttribute('data-lat');
+                const lng = dropoffEl.getAttribute('data-lng');
+                reverseGeocodeActive(lat, lng, 'active-dropoff-display');
+            }
+
+            // Live polling for ride progress (CONFIRMED -> ONGOING -> COMPLETED)
+            const currentRideStatus = "[[${activeRide.status}]]";
+            const activeRidePoll = setInterval(function() {
+                if (window.isPaymentInProgress) return;
+                fetch('/rider/checkStatus')
+                    .then(function(res) { return res.json(); })
+                    .then(function(data) {
+                        if (data && typeof data.hasActiveRide === 'boolean' && data.status !== 'UNAUTHENTICATED') {
+                            if (!data.hasActiveRide || data.rideStatus !== currentRideStatus) {
+                                clearInterval(activeRidePoll);
+                                window.location.reload();
+                            }
+                        }
+                    })
+                    .catch(function() {});
+            }, 4000);
+        });
+
+        window.isPaymentInProgress = false;
+        function initiateUpiPayment() {
+            const btn = document.getElementById('pay-upi-btn');
+            const loader = document.getElementById('upi-loading');
+            const errorDiv = document.getElementById('upi-error');
+
+            if (btn) btn.disabled = true;
+            if (loader) loader.classList.remove('hidden');
+            if (errorDiv) {
+                errorDiv.classList.add('hidden');
+                errorDiv.innerText = '';
+            }
+            window.isPaymentInProgress = true;
+
+            const rideFare = parseFloat("[[${activeRide.fare}]]");
+            const rideId = parseInt("[[${activeRide.id}]]");
+            const driverUserId = parseInt("[[${activeRide.driver != null and activeRide.driver.user != null ? activeRide.driver.user.id : (activeRide.driver != null ? activeRide.driver.id : 0)}]]");
+
+            fetch('/rider/ride/create-upi-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: rideFare })
+            })
+            .then(function(res) {
+                if (!res.ok) throw new Error("Failed to initialize UPI order: status " + res.status);
+                return res.json();
+            })
+            .then(function(orderData) {
+                const options = {
+                    key: orderData.keyId,
+                    amount: orderData.amount,
+                    currency: "INR",
+                    name: "RideMesh UPI Payment",
+                    description: "Trip Fare for Ride #" + rideId,
+                    order_id: orderData.orderId,
+                    prefill: {
+                        name: "[[${currentUser != null ? currentUser.name : ''}]]",
+                        email: "[[${currentUser != null ? currentUser.email : ''}]]",
+                        contact: "[[${currentUser != null and currentUser.phoneNumber != null ? currentUser.phoneNumber : ''}]]"
+                    },
+                    theme: {
+                        color: "#4f46e5"
+                    },
+                    modal: {
+                        ondismiss: function() {
+                            window.isPaymentInProgress = false;
+                            if (btn) btn.disabled = false;
+                            if (loader) loader.classList.add('hidden');
+                        }
+                    },
+                    handler: function(response) {
+                        if (loader) {
+                            loader.classList.remove('hidden');
+                            loader.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i><span>Verifying UPI payment and crediting driver wallet...</span>';
+                        }
+                        fetch('/rider/ride/verify-upi-payment', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                razorpayOrderId: response.razorpay_order_id,
+                                razorpayPaymentId: response.razorpay_payment_id,
+                                razorpaySignature: response.razorpay_signature,
+                                amount: rideFare,
+                                rideId: rideId,
+                                driverUserId: driverUserId
+                            })
+                        })
+                        .then(function(vRes) {
+                            if (!vRes.ok) throw new Error("Payment verification failed on server");
+                            return vRes.json();
+                        })
+                        .then(function(vData) {
+                            window.location.reload();
+                        })
+                        .catch(function(err) {
+                            window.isPaymentInProgress = false;
+                            if (btn) btn.disabled = false;
+                            if (loader) loader.classList.add('hidden');
+                            if (errorDiv) {
+                                errorDiv.classList.remove('hidden');
+                                errorDiv.innerText = "Verification failed: " + err.message;
+                            }
+                        });
+                    }
+                };
+                const rzp = new Razorpay(options);
+                rzp.on('payment.failed', function(response) {
+                    window.isPaymentInProgress = false;
+                    if (btn) btn.disabled = false;
+                    if (loader) loader.classList.add('hidden');
+                    if (errorDiv) {
+                        errorDiv.classList.remove('hidden');
+                        errorDiv.innerText = "Payment failed: " + (response.error.description || "Transaction cancelled");
+                    }
+                });
+                rzp.open();
+            })
+            .catch(function(err) {
+                window.isPaymentInProgress = false;
+                if (btn) btn.disabled = false;
+                if (loader) loader.classList.add('hidden');
+                if (errorDiv) {
+                    errorDiv.classList.remove('hidden');
+                    errorDiv.innerText = err.message;
+                }
+            });
+        }
+    </script>
+
+    <!-- Global Cancel Confirmation Dialog -->
+    <div id="cancel-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-all duration-300">
+        <div class="glass-card w-full max-w-sm rounded-2xl p-6 md:p-8 shadow-2xl border border-gray-200 dark:border-gray-800 text-center relative" onclick="event.stopPropagation()">
+            <button onclick="closeCancelModal()" type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-none p-1 rounded-lg">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-500 flex items-center justify-center mx-auto mb-3 text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <p id="cancel-modal-title" class="text-base font-semibold text-gray-900 dark:text-white mt-1 mb-6">
+                Are you sure you want to cancel?
+            </p>
+            <div class="flex items-center justify-center space-x-3">
+                <button onclick="closeCancelModal()" type="button" class="w-1/2 py-2.5 px-4 rounded-xl border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold text-sm transition">
+                    No, Keep
+                </button>
+                <button onclick="proceedFormCancel()" type="button" class="w-1/2 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-sm transition shadow-lg shadow-red-600/25">
+                    Yes, Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let formToCancelId = null;
+        function confirmCancelForm(formId, message) {
+            formToCancelId = formId;
+            const modal = document.getElementById('cancel-modal');
+            const title = document.getElementById('cancel-modal-title');
+            if (title && message) title.textContent = message;
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } else if (confirm(message || 'Are you sure you want to cancel?')) {
+                document.getElementById(formId).submit();
+            }
+        }
+        function closeCancelModal() {
+            const modal = document.getElementById('cancel-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+            formToCancelId = null;
+        }
+        function proceedFormCancel() {
+            if (formToCancelId) {
+                const form = document.getElementById(formToCancelId);
+                if (form) form.submit();
+            }
+            closeCancelModal();
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('cancel-modal');
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        closeCancelModal();
+                    }
+                });
+            }
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeCancelModal();
+                    closeActiveRideReportModal();
+                }
+            });
+        });
+
+        // --- Active Ride Report Driver Modal Scripts ---
+        function openActiveRideReportModal(rideId, driverId, driverName) {
+            document.getElementById('activeReportRideId').value = rideId || '';
+            document.getElementById('activeReportDriverId').value = driverId || '';
+            document.getElementById('activeReportModalSubtitle').innerText = 'Reporting: ' + (driverName || 'Driver') + ' (Active Ride #' + (rideId || '') + ')';
+            document.getElementById('activeReportReason').value = '';
+            document.getElementById('activeReportMedia').value = '';
+            document.getElementById('activeReportErrorMsg').classList.add('hidden');
+            document.getElementById('activeReportDriverModal').classList.remove('hidden');
+            checkActiveReportFormValidity();
+        }
+
+        function closeActiveRideReportModal() {
+            const modal = document.getElementById('activeReportDriverModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function checkActiveReportFormValidity() {
+            const reasonInput = document.getElementById('activeReportReason');
+            const mediaInput = document.getElementById('activeReportMedia');
+            const submitBtn = document.getElementById('submitActiveReportBtn');
+            if (!reasonInput || !mediaInput || !submitBtn) return;
+            const hasReason = reasonInput.value.trim().length > 0;
+            const hasMedia = mediaInput.files && mediaInput.files.length > 0;
+            submitBtn.disabled = !(hasReason && hasMedia);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const reasonInput = document.getElementById('activeReportReason');
+            const mediaInput = document.getElementById('activeReportMedia');
+            if (reasonInput) reasonInput.addEventListener('input', checkActiveReportFormValidity);
+            if (mediaInput) mediaInput.addEventListener('change', checkActiveReportFormValidity);
+        });
+
+        async function submitActiveReportForm(event) {
+            event.preventDefault();
+            const reasonInput = document.getElementById('activeReportReason');
+            const mediaInput = document.getElementById('activeReportMedia');
+            const submitBtn = document.getElementById('submitActiveReportBtn');
+            const errorDiv = document.getElementById('activeReportErrorMsg');
+            errorDiv.classList.add('hidden');
+
+            const hasReason = reasonInput.value.trim().length > 0;
+            const hasMedia = mediaInput.files && mediaInput.files.length > 0;
+            if (!hasReason || !hasMedia) {
+                errorDiv.innerText = 'Both reason and compulsory evidence media are required.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('rideId', document.getElementById('activeReportRideId').value);
+            formData.append('driverId', document.getElementById('activeReportDriverId').value);
+            formData.append('reason', reasonInput.value.trim());
+            formData.append('media', mediaInput.files[0]);
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i> <span>Submitting...</span>';
+
+            try {
+                const response = await fetch('/rider/report-driver', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    alert(result.message || 'Your report was recieved, we will look into this matter. thanks for reporting, this helps keep our plaatform safe');
+                    closeActiveRideReportModal();
+                    window.location.reload();
+                } else {
+                    errorDiv.innerText = result.message || 'Failed to submit report. Please try again.';
+                    errorDiv.classList.remove('hidden');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane text-[10px]"></i> <span>Submit Report</span>';
+                }
+            } catch (err) {
+                errorDiv.innerText = 'Network error: ' + err.message;
+                errorDiv.classList.remove('hidden');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane text-[10px]"></i> <span>Submit Report</span>';
+            }
+        }
+    </script>
+
+    <!-- Active Ride Report Driver Modal -->
+    <div id="activeReportDriverModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-card bg-slate-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative text-slate-200">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-800">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-lg bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-500">
+                        <i class="fa-solid fa-triangle-exclamation text-sm"></i>
+                    </span>
+                    <div>
+                        <h3 class="text-base font-bold text-white">Report Driver</h3>
+                        <p class="text-[11px] text-gray-400" id="activeReportModalSubtitle">Submit safety/incident report</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeActiveRideReportModal()" class="text-gray-400 hover:text-white transition text-lg">&times;</button>
+            </div>
+
+            <form id="activeReportForm" onsubmit="submitActiveReportForm(event)" class="space-y-4">
+                <input type="hidden" id="activeReportRideId" name="rideId">
+                <input type="hidden" id="activeReportDriverId" name="driverId">
+
+                <!-- Reason Textarea -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1.5">
+                        Reason for Report <span class="text-rose-400">*</span>
+                    </label>
+                    <textarea id="activeReportReason" name="reason" rows="3" required
+                              placeholder="Please describe what happened in detail..."
+                              class="w-full bg-gray-950/70 border border-gray-800 focus:border-rose-500 rounded-xl p-3 text-xs text-white focus:outline-none transition resize-none"></textarea>
+                </div>
+
+                <!-- Compulsory Evidence Upload -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1.5">
+                        Compulsory Evidence (Media/Photos) <span class="text-rose-400">*</span>
+                    </label>
+                    <input type="file" id="activeReportMedia" name="media" required accept="image/*,video/*,.pdf"
+                           class="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-rose-500/10 file:text-rose-400 hover:file:bg-rose-500/20 border border-gray-800 rounded-xl p-1 bg-gray-950/60 cursor-pointer">
+                    <p class="text-[10px] text-gray-400 mt-1">Upload a photo, screenshot, or video as compulsory evidence.</p>
+                </div>
+
+                <div id="activeReportErrorMsg" class="hidden p-2.5 rounded-lg bg-rose-950/50 border border-rose-500/30 text-rose-400 text-xs text-center"></div>
+
+                <div class="flex items-center justify-end space-x-3 pt-2 border-t border-gray-800">
+                    <button type="button" onclick="closeActiveRideReportModal()"
+                            class="px-4 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 text-xs font-semibold transition border border-gray-800">
+                        Back
+                    </button>
+                    <button type="submit" id="submitActiveReportBtn" disabled
+                            class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition shadow-md flex items-center gap-1.5">
+                        <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                        <span>Submit Report</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

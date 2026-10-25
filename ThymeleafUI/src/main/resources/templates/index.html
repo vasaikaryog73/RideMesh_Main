@@ -12,8 +12,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
         body {
-            background-color: #f8fafc;
-            color: #0f172a;
+            background-color: var(--color-bg, #ffffff);
+            color: var(--color-text, #0f172a);
             font-family: 'Inter', sans-serif;
         }
         .glass-card {
@@ -43,7 +43,7 @@
     <!-- Header / Navbar -->
     <nav class="glass-card py-4 px-8 flex justify-between items-center border-b border-slate-200 relative z-20">
         <div class="flex items-center space-x-3">
-            <img src="https://res.cloudinary.com/dvb5mesnd/image/upload/v1788200216/RideMeshIcon-main_z7q9bk.png" alt="RideMesh Logo" class="w-8 h-8 rounded-lg object-contain shadow-sm" />
+            <img src="https://res.cloudinary.com/dvb5mesnd/image/upload/v1792821669/RideMeshIcon-modified_hwnpel.png" alt="RideMesh Logo" class="w-8 h-8 rounded-lg object-contain shadow-sm" />
             <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                 RideMesh
             </span>
@@ -55,8 +55,8 @@
                     title="Toggle Theme">
                 <i class="fa-solid fa-sun text-amber-500" id="theme-toggle-icon"></i>
             </button>
-            <a th:href="@{/login}" class="text-sm font-semibold text-slate-600 hover:text-purple-600 transition">Sign In</a>
-            <a th:href="@{/signup}" class="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-sm font-semibold text-white transition glow-btn shadow-lg">Sign Up</a>
+            <a th:href="@{/login}" class="px-3.5 py-2 rounded-lg border border-white/80 hover:bg-white/20 text-sm font-semibold text-white transition">Sign In</a>
+            <a th:href="@{/signup}" class="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-sm font-semibold text-white transition glow-btn shadow-lg nav-action-btn">Sign Up</a>
         </div>
     </nav>
 

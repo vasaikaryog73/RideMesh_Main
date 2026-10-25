@@ -11,8 +11,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
         body {
-            background-color: #f8fafc;
-            color: #0f172a;
+            background-color: var(--color-bg, #ffffff);
+            color: var(--color-text, #0f172a);
             font-family: 'Inter', sans-serif;
         }
         .glass-card {
@@ -37,7 +37,7 @@
     <!-- Navbar -->
     <nav class="glass-card py-4 px-8 flex justify-between items-center border-b border-slate-200">
         <a th:href="@{/}" class="flex items-center space-x-3 brand-link">
-            <img src="https://res.cloudinary.com/dvb5mesnd/image/upload/v1788200216/RideMeshIcon-main_z7q9bk.png" alt="RideMesh Logo" class="w-8 h-8 rounded-lg object-contain shadow-sm" />
+            <img src="https://res.cloudinary.com/dvb5mesnd/image/upload/v1792821669/RideMeshIcon-modified_hwnpel.png" alt="RideMesh Logo" class="w-8 h-8 rounded-lg object-contain shadow-sm" />
             <span class="text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                 RideMesh
             </span>
@@ -47,7 +47,7 @@
             <button onclick="toggleTheme()" class="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 flex items-center justify-center transition border border-gray-200 dark:border-gray-800 focus:outline-none" title="Toggle Theme">
                 <i class="fa-solid fa-sun text-amber-500" id="theme-toggle-icon"></i>
             </button>
-            <a th:href="@{/logout}" class="text-rose-600 hover:text-rose-500 text-sm font-semibold transition">Log Out</a>
+            <a th:href="@{/logout}" class="px-3.5 py-1.5 rounded-lg border border-white/60 hover:bg-white/10 text-sm font-semibold text-white transition">Log Out</a>
         </div>
     </nav>
 

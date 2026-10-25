@@ -34,8 +34,7 @@ public class Driver {
     @Column(columnDefinition = "Geometry(Point, 4326)")
     private Point currentLocation;
 
-    @Positive(message = "Vehicle ID must be a positive number")
-    private Long vehicleId;
+    private String vehicleId;
 
     private String vehicleType;
     private String phoneNumber;
@@ -98,11 +97,11 @@ public class Driver {
         this.currentLocation = currentLocation;
     }
 
-    public Long getVehicleId() {
+    public String getVehicleId() {
         return vehicleId;
     }
 
-    public void setVehicleId(Long vehicleId) {
+    public void setVehicleId(String vehicleId) {
         this.vehicleId = vehicleId;
     }
 
@@ -145,7 +144,7 @@ public class Driver {
         private Double rating;
         private Boolean available;
         private Point currentLocation;
-        private Long vehicleId;
+        private String vehicleId;
         private String vehicleType;
         private String phoneNumber;
         private String state;
@@ -176,7 +175,7 @@ public class Driver {
             return this;
         }
 
-        public DriverBuilder vehicleId(Long vehicleId) {
+        public DriverBuilder vehicleId(String vehicleId) {
             this.vehicleId = vehicleId;
             return this;
         }

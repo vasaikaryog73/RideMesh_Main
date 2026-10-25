@@ -19,6 +19,10 @@ public class DriverRideDto {
     private LocalDateTime endedAt;
     private String pickupState;
     private String pickupDistrict;
+    private String dropoffState;
+    private String dropoffDistrict;
+    private String pickupAddress;
+    private String dropoffAddress;
 
     public DriverRideDto() {
     }
@@ -139,5 +143,37 @@ public class DriverRideDto {
 
     public void setPickupDistrict(String pickupDistrict) {
         this.pickupDistrict = pickupDistrict;
+    }
+
+    public String getDropoffState() {
+        return dropoffState;
+    }
+
+    public void setDropoffState(String dropoffState) {
+        this.dropoffState = dropoffState;
+    }
+
+    public String getDropoffDistrict() {
+        return dropoffDistrict;
+    }
+
+    public void setDropoffDistrict(String dropoffDistrict) {
+        this.dropoffDistrict = dropoffDistrict;
+    }
+
+    public String getPickupAddress() {
+        return pickupAddress;
+    }
+
+    public void setPickupAddress(String pickupAddress) {
+        this.pickupAddress = pickupAddress;
+    }
+
+    public String getDropoffAddress() {
+        return dropoffAddress;
+    }
+
+    public void setDropoffAddress(String dropoffAddress) {
+        this.dropoffAddress = dropoffAddress;
     }
 }

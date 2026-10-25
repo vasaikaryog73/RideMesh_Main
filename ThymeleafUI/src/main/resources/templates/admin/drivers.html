@@ -9,8 +9,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            background-color: #0b0f19;
-            color: #f3f4f6;
+            background-color: var(--color-bg, #ffffff);
+            color: var(--color-text, #0f172a);
             font-family: 'Inter', sans-serif;
         }
         .glass-card {
@@ -19,17 +19,19 @@
             border: 1px solid rgba(255, 255, 255, 0.06);
         }
     </style>
+    <!-- Include Theme Styles in head for instant theme rendering without flicker -->
+    <th:block th:replace="~{fragments/navigation :: themeStyles}"></th:block>
 </head>
-<body class="min-h-screen flex">
+<body class="min-h-screen flex flex-col lg:flex-row w-full overflow-x-hidden">
 
     <!-- Sidebar fragment injection -->
     <div th:replace="~{fragments/navigation :: sidebar('drivers', ${currentUser})}"></div>
 
-    <div class="flex-grow flex flex-col min-h-screen">
+    <div class="flex-1 flex flex-col min-h-screen w-full min-w-0">
         <!-- Top Navbar fragment injection -->
         <header th:replace="~{fragments/navigation :: navbar(${currentUser})}"></header>
 
-        <main class="flex-grow p-8 space-y-6 relative overflow-hidden">
+        <main class="flex-grow p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 relative overflow-hidden">
             <div class="absolute -top-40 -left-40 w-96 h-96 bg-purple-600 rounded-full filter blur-3xl opacity-10 animate-pulse"></div>
 
             <!-- Header Panel -->
@@ -63,35 +65,48 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm text-gray-300">
                         <thead>
-                            <tr class="text-xs font-semibold uppercase tracking-wider border-b border-gray-800">
-                                <th class="px-6 py-4 rounded-l-xl">Driver ID</th>
-                                <th class="px-6 py-4">Driver Name</th>
-                                <th class="px-6 py-4">Rating</th>
-                                <th class="px-6 py-4">Availability</th>
-                                <th class="px-6 py-4 text-center rounded-r-xl">Actions</th>
+                            <tr class="text-xs text-gray-500 border-b border-gray-900 uppercase">
+                                <th class="pb-3">Driver ID</th>
+                                <th class="pb-3">Driver Name</th>
+                                <th class="pb-3">Rating</th>
+                                <th class="pb-3">Availability</th>
+                                <th class="pb-3 text-center">Reports</th>
+                                <th class="pb-3 text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-900">
                             <!-- Empty State -->
                             <tr th:if="${#lists.isEmpty(drivers)}">
-                                <td colspan="5" class="py-12 px-6 text-center text-gray-500 text-xs">No active drivers onboarded yet.</td>
+                                <td colspan="6" class="py-8 text-center text-gray-500 text-xs">No active drivers onboarded yet.</td>
                             </tr>
                             <!-- Driver Rows -->
                             <tr th:each="driver : ${drivers}" class="hover:bg-gray-900/30 transition">
-                                <td class="px-6 py-4 font-mono text-xs text-purple-400" th:text="'#' + ${driver.id}">#1</td>
-                                <td class="px-6 py-4 text-xs font-semibold text-white" th:text="${driver.user.name}">John Doe</td>
-                                <td class="px-6 py-4 text-xs font-mono text-amber-400" th:text="${driver.rating != null ? #numbers.formatDecimal(driver.rating, 1, 1) + ' ★' : '0.0 ★'}">4.8 ★</td>
-                                <td class="px-6 py-4 text-xs">
-                                    <span th:if="${driver.available}" class="px-2.5 py-1 rounded bg-emerald-950/50 text-emerald-400 border border-emerald-500/20 font-semibold uppercase text-[10px]">
+                                <td class="py-4 font-mono text-xs text-purple-400" th:text="${driver.id != null ? #numbers.formatInteger(driver.id, 5) : '00000'}">00001</td>
+                                <td class="py-4 text-xs font-semibold text-white" th:text="${driver.user.name}">John Doe</td>
+                                <td class="py-4 text-xs font-mono text-amber-400" th:text="${driver.rating != null ? #numbers.formatDecimal(driver.rating, 1, 1) + ' ★' : '0.0 ★'}">4.8 ★</td>
+                                <td class="py-4 text-xs">
+                                    <span th:if="${driver.available}" class="px-2 py-0.5 rounded bg-emerald-950/50 text-emerald-400 border border-emerald-500/20 font-semibold uppercase text-[10px]">
                                         Online
                                     </span>
-                                    <span th:unless="${driver.available}" class="px-2.5 py-1 rounded bg-gray-900 text-gray-500 border border-gray-800 font-semibold uppercase text-[10px]">
+                                    <span th:unless="${driver.available}" class="px-2 py-0.5 rounded bg-gray-900 text-gray-500 border border-gray-800 font-semibold uppercase text-[10px]">
                                         Offline
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-center flex items-center justify-center space-x-2">
+                                <!-- Reports Count Column -->
+                                <td class="py-4 text-center">
+                                    <span th:if="${driver.reportsCount != null and driver.reportsCount > 0}"
+                                          class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-400 font-bold text-xs shadow-sm">
+                                        <i class="fa-solid fa-triangle-exclamation text-[10px]"></i>
+                                        <span th:text="${driver.reportsCount}">1</span>
+                                    </span>
+                                    <span th:unless="${driver.reportsCount != null and driver.reportsCount > 0}"
+                                          class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
+                                        <span>0</span>
+                                    </span>
+                                </td>
+                                <td class="py-4 text-center flex items-center justify-center space-x-2">
                                     <button type="button"
-                                            th:data-id="${driver.id}"
+                                            th:data-id="${driver.id != null ? #numbers.formatInteger(driver.id, 5) : '00000'}"
                                             th:data-name="${driver.user.name}"
                                             th:data-email="${driver.user.email}"
                                             th:data-vehicle-id="${driver.vehicleId}"
@@ -112,7 +127,7 @@
                                     </button>
 
                                     <!-- Suspend Driver (demotes back to Rider) -->
-                                    <form th:action="@{/admin/drivers/{userId}/suspend(userId=${driver.user.id})}" method="POST" onsubmit="return showNotImplementedModal(event)">
+                                    <form th:action="@{/admin/drivers/{userId}/suspend(userId=${driver.user.id})}" method="POST" onsubmit="return confirm('Are you sure you want to suspend this driver? They will revert to a Rider.');">
                                         <button type="submit" class="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white font-semibold text-[10px] transition">
                                             Suspend Driver
                                         </button>
@@ -133,7 +148,7 @@
                         <div class="w-8 h-8 rounded-lg bg-indigo-600/20 flex items-center justify-center text-indigo-400 text-sm">🪪</div>
                         <div>
                             <h3 class="text-base font-bold text-white">Driver Profile Details</h3>
-                            <p class="text-[10px] text-gray-400 font-mono" id="modalDriverId">Driver ID: #1</p>
+                            <p class="text-[10px] text-gray-400 font-mono" id="modalDriverId">Driver ID: 00001</p>
                         </div>
                     </div>
 
@@ -155,8 +170,8 @@
                             <span class="text-white font-medium capitalize" id="modalVehicleType">Car</span>
                         </div>
                         <div class="flex justify-between border-b border-gray-900 pb-2">
-                            <span>Vehicle Numeric ID</span>
-                            <span class="text-white font-medium" id="modalVehicleId">12345</span>
+                            <span>Vehicle Number</span>
+                            <span class="text-white font-medium font-mono" id="modalVehicleId">MH 12 AB 1234</span>
                         </div>
                         <div class="flex justify-between border-b border-gray-900 pb-2">
                             <span>Location / Region</span>
@@ -306,7 +321,7 @@
         }
 
         function showDriverDetails(id, name, email, vehicleId, rating, vehicleType, phoneNumber, state, district, licenseNumber, licensePhoto, vehiclePhotos, identityType, identityPhoto) {
-            document.getElementById('modalDriverId').innerText = 'Driver ID: #' + id;
+            document.getElementById('modalDriverId').innerText = 'Driver ID: ' + String(id).padStart(5, '0');
             document.getElementById('modalDriverName').innerText = name;
             document.getElementById('modalDriverEmail').innerText = email;
             document.getElementById('modalPhoneNumber').innerText = phoneNumber;

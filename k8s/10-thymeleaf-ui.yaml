@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thymeleaf-ui
+  namespace: ridemesh
+  labels:
+    app: thymeleaf-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: thymeleaf-ui
+  template:
+    metadata:
+      labels:
+        app: thymeleaf-ui
+    spec:
+      containers:
+        - name: thymeleaf-ui
+          image: ridemesh/thymeleaf-ui:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8085
+              name: http
+          env:
+            - name: GATEWAY_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: ridemesh-config
+                  key: GATEWAY_BASE_URL
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8085
+            initialDelaySeconds: 40
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8085
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thymeleaf-ui
+  namespace: ridemesh
+  labels:
+    app: thymeleaf-ui
+spec:
+  type: NodePort
+  ports:
+    - port: 8085
+      targetPort: 8085
+      nodePort: 30085
+      name: http
+  selector:
+    app: thymeleaf-ui

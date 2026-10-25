@@ -1,0 +1,250 @@
+version: '3.8'
+
+services:
+  # -------------------------------------------------------------
+  # Infrastructure: PostgreSQL Database with PostGIS
+  # -------------------------------------------------------------
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: ridemesh-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Asus@260422
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ridemesh-net
+
+  # -------------------------------------------------------------
+  # Infrastructure: Apache Kafka & Zookeeper
+  # -------------------------------------------------------------
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: ridemesh-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - ridemesh-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: ridemesh-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server kafka:9092 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ridemesh-net
+
+  # -------------------------------------------------------------
+  # Microservices: 1. Eureka Discovery Server
+  # -------------------------------------------------------------
+  eureka-server:
+    build:
+      context: ./eureka-server
+      dockerfile: Dockerfile
+    container_name: ridemesh-eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - ridemesh-net
+
+  # -------------------------------------------------------------
+  # Microservices: 2. Spring Cloud API Gateway
+  # -------------------------------------------------------------
+  apigateway:
+    build:
+      context: ./ApiGateway
+      dockerfile: Dockerfile
+    container_name: ridemesh-apigateway
+    depends_on:
+      - eureka-server
+    ports:
+      - "8089:8089"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - ridemesh-net
+
+  # -------------------------------------------------------------
+  # Microservices: 3. Core Business Services
+  # -------------------------------------------------------------
+  user-service:
+    build:
+      context: ./UserService
+      dockerfile: Dockerfile
+    container_name: ridemesh-user-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ridemesh_user_db?useSSL=false
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Asus@260422
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - ridemesh-net
+
+  ride-service:
+    build:
+      context: ./RideService
+      dockerfile: Dockerfile
+    container_name: ridemesh-ride-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ridemesh_ride_db?useSSL=false
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-Asus@260422}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    networks:
+      - ridemesh-net
+
+  wallet-service:
+    build:
+      context: ./WalletService
+      dockerfile: Dockerfile
+    container_name: ridemesh-wallet-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ridemesh_wallet_db?useSSL=false
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Asus@260422
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - ridemesh-net
+
+  notify-service:
+    build:
+      context: ./NotifyService
+      dockerfile: Dockerfile
+    container_name: ridemesh-notify-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/notify_db?useSSL=false
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: Asus@260422
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - ridemesh-net
+
+  # -------------------------------------------------------------
+  # Microservices: 4. User Interface
+  # -------------------------------------------------------------
+  thymeleaf-ui:
+    build:
+      context: ./ThymeleafUI
+      dockerfile: Dockerfile
+    container_name: ridemesh-thymeleaf-ui
+    depends_on:
+      - apigateway
+    ports:
+      - "8085:8085"
+    environment:
+      GATEWAY_BASE_URL: http://apigateway:8089
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8085/login/oauth2/code/google}
+    networks:
+      - ridemesh-net
+
+  # -------------------------------------------------------------
+  # Observability: Prometheus & Grafana
+  # -------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: ridemesh-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - ridemesh-net
+
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: ridemesh-grafana
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - ridemesh-net
+
+networks:
+  ridemesh-net:
+    driver: bridge
+
+volumes:
+  postgres-data:

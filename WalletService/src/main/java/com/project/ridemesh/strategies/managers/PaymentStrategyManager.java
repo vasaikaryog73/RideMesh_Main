@@ -27,6 +27,7 @@ public class PaymentStrategyManager {
             case WALLET:
                 return walletPaymentStrategy;
             case RAZORPAY:
+            case UPI:
                 return razorpayPaymentStrategy;
             default:
                 throw new IllegalArgumentException("Unknown payment method: " + paymentMethod);

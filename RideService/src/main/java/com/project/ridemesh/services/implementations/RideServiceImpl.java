@@ -60,12 +60,16 @@ public class RideServiceImpl implements RideService {
         ride.setDriverId(driverDto.getId());
         ride.setPaymentMethod(rideRequest.getPaymentMethod());
         ride.setFare(rideRequest.getFare());
-        ride.setStatus(RideStatus.ONGOING);
-        ride.setStartedAt(java.time.LocalDateTime.now());
+        ride.setStatus(RideStatus.ACCEPTED);
+        ride.setStartedAt(null);
         ride.setVehicleType(rideRequest.getVehicleType());
         ride.setOtp(generateOtp());
         ride.setPickupState(rideRequest.getPickupState());
         ride.setPickupDistrict(rideRequest.getPickupDistrict());
+        ride.setDropoffState(rideRequest.getDropoffState());
+        ride.setDropoffDistrict(rideRequest.getDropoffDistrict());
+        ride.setPickupAddress(rideRequest.getPickupAddress());
+        ride.setDropoffAddress(rideRequest.getDropoffAddress());
         
         rideRequestService.updateRideRequest(rideRequest);
         Ride savedRide = rideRepository.save(ride);

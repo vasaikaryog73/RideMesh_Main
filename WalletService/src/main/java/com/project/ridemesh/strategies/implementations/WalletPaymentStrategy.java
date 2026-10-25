@@ -20,18 +20,18 @@ public class WalletPaymentStrategy implements PaymentStrategy {
     @Override
     @Transactional
     public void processPayment(Payment payment) {
-        double paymentAddedToWallet = payment.getAmount() - (payment.getAmount() * PLATFORM_FEE);
+        double paymentAmount = payment.getAmount();
 
-        // 1. Credit driver (fare minus platform fee)
+        // 1. Credit driver (fare)
         walletService.addMoneyToWallet(payment.getDriverId(),
-                paymentAddedToWallet,
+                paymentAmount,
                 null,
                 payment.getRideId(),
                 TransactionMethod.RIDE);
 
-        // 2. Debit rider (full fare)
+        // 2. Debit rider (fare)
         walletService.subtractMoneyFromWallet(payment.getRiderId(),
-                payment.getAmount(),
+                paymentAmount,
                 null,
                 payment.getRideId(),
                 TransactionMethod.RIDE);

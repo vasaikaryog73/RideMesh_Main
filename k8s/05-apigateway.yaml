@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apigateway
+  namespace: ridemesh
+  labels:
+    app: apigateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apigateway
+  template:
+    metadata:
+      labels:
+        app: apigateway
+    spec:
+      containers:
+        - name: apigateway
+          image: ridemesh/apigateway:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8089
+              name: http
+          env:
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              valueFrom:
+                configMapKeyRef:
+                  name: ridemesh-config
+                  key: EUREKA_SERVER_URL
+            - name: JWT_SECRETKEY
+              valueFrom:
+                secretKeyRef:
+                  name: ridemesh-secrets
+                  key: JWT_SECRET
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8089
+            initialDelaySeconds: 40
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8089
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apigateway
+  namespace: ridemesh
+  labels:
+    app: apigateway
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8089
+      targetPort: 8089
+      name: http
+  selector:
+    app: apigateway

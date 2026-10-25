@@ -24,6 +24,13 @@ public class DriverMatchingNearestDrivers implements DriverMatchingStrategy {
     @Override
     public List<DriverDto> findMatchingDrivers(RideRequest rideRequest) {
         String vehicleType = rideRequest.getVehicleType();
-        return userServiceClient.getMatchingDrivers(java.util.Collections.emptyList(), vehicleType);
+        List<String> districts = rideRequest.getPickupDistrict() != null 
+                ? java.util.Collections.singletonList(rideRequest.getPickupDistrict()) 
+                : java.util.Collections.emptyList();
+        List<DriverDto> drivers = userServiceClient.getMatchingDrivers(districts, vehicleType);
+        return drivers.stream()
+                .filter(d -> com.project.ridemesh.utils.LocationUtil.isDistrictMatch(d.getDistrict(), rideRequest.getPickupDistrict()))
+                .filter(d -> com.project.ridemesh.utils.LocationUtil.isVehicleTypeMatch(d.getVehicleType(), rideRequest.getVehicleType()))
+                .collect(java.util.stream.Collectors.toList());
     }
 }

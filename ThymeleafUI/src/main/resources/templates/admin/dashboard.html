@@ -9,8 +9,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            background-color: #0b0f19;
-            color: #f3f4f6;
+            background-color: var(--color-bg, #ffffff);
+            color: var(--color-text, #0f172a);
             font-family: 'Inter', sans-serif;
         }
         .glass-card {
@@ -19,17 +19,19 @@
             border: 1px solid rgba(255, 255, 255, 0.06);
         }
     </style>
+    <!-- Include Theme Styles in head for instant theme rendering without flicker -->
+    <th:block th:replace="~{fragments/navigation :: themeStyles}"></th:block>
 </head>
-<body class="min-h-screen flex">
+<body class="min-h-screen flex flex-col lg:flex-row w-full overflow-x-hidden">
 
     <!-- Sidebar fragment injection -->
     <div th:replace="~{fragments/navigation :: sidebar('admin-dashboard', ${currentUser})}"></div>
 
-    <div class="flex-grow flex flex-col min-h-screen">
+    <div class="flex-1 flex flex-col min-h-screen w-full min-w-0">
         <!-- Top Navbar fragment injection -->
         <header th:replace="~{fragments/navigation :: navbar(${currentUser})}"></header>
 
-        <main class="flex-grow p-8 space-y-6 relative overflow-hidden">
+        <main class="flex-grow p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 relative overflow-hidden">
             <div class="absolute -top-40 -left-40 w-96 h-96 bg-purple-600 rounded-full filter blur-3xl opacity-10 animate-pulse"></div>
 
             <!-- Page Title -->
@@ -49,26 +51,30 @@
             <!-- Onboarding Panel Grid -->
             <div class="grid grid-cols-1 gap-8 relative z-10">
                 <!-- Driver Onboarding Form -->
-                <div class="glass-card p-6 rounded-2xl shadow-xl space-y-4">
-                    <h3 class="text-lg font-bold text-white mb-2">Onboard Driver</h3>
-                    <p class="text-gray-400 text-xs mb-6">Convert any existing rider account into an active driver account by assigning their vehicle ID.</p>
+                <div class="glass-card p-8 rounded-2xl shadow-xl space-y-6">
+                    <div>
+                        <h3 class="text-lg font-bold text-white mb-1">Onboard Driver</h3>
+                        <p class="text-gray-400 text-xs">Convert any existing rider account into an active driver account by assigning their vehicle ID.</p>
+                    </div>
 
-                    <form th:action="@{/admin/onboardDriver}" method="POST" onsubmit="return showNotImplementedModal(event)" class="space-y-4 max-w-xl">
-                        <div>
-                            <label class="text-xs text-gray-400 block mb-1">Rider User ID</label>
-                            <input type="number" name="userId" required placeholder="e.g. 5"
-                                   class="w-full bg-gray-950/60 border border-gray-900 focus:border-purple-500 rounded-lg p-3 text-white text-sm focus:outline-none transition">
-                        </div>
+                    <form th:action="@{/admin/onboardDriver}" method="POST" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="text-xs text-gray-400 block mb-1">Rider User ID</label>
+                                <input type="number" name="userId" required placeholder="e.g. 00005"
+                                       class="w-full bg-gray-950/60 border border-gray-900 focus:border-purple-500 rounded-lg p-3.5 text-white text-sm focus:outline-none transition">
+                            </div>
 
-                        <div>
-                            <label class="text-xs text-gray-400 block mb-1">Vehicle Numeric ID (e.g. 12345)</label>
-                            <input type="number" name="vehicleId" required placeholder="e.g. 12345"
-                                   class="w-full bg-gray-950/60 border border-gray-900 focus:border-purple-500 rounded-lg p-3 text-white text-sm focus:outline-none transition">
+                            <div>
+                                <label class="text-xs text-gray-400 block mb-1">Vehicle Number (e.g. MH 12 AB 1234)</label>
+                                <input type="text" name="vehicleId" required placeholder="e.g. MH 12 AB 1234"
+                                       class="w-full bg-gray-950/60 border border-gray-900 focus:border-purple-500 rounded-lg p-3.5 text-white text-sm focus:outline-none transition uppercase">
+                            </div>
                         </div>
 
                         <button type="submit"
-                                class="py-3 px-6 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm transition shadow-lg">
-                            Register & Onboard Driver
+                                class="py-3.5 px-8 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm transition shadow-lg hover:scale-[1.005]">
+                            Register &amp; Onboard Driver
                         </button>
                     </form>
                 </div>

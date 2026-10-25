@@ -1,0 +1,226 @@
+#
+# There is insufficient memory for the Java Runtime Environment to continue.
+# Native memory allocation (mmap) failed to map 394264576 bytes for G1 virtual space
+# Possible reasons:
+#   The system is out of physical RAM or swap space
+#   The process is running with CompressedOops enabled, and the Java Heap may be blocking the growth of the native heap
+# Possible solutions:
+#   Reduce memory load on the system
+#   Increase physical memory or swap space
+#   Check if swap backing store is full
+#   Decrease Java heap size (-Xmx/-Xms)
+#   Decrease number of Java threads
+#   Decrease Java thread stack sizes (-Xss)
+#   Set larger code cache with -XX:ReservedCodeCacheSize=
+#   JVM is running with Zero Based Compressed Oops mode in which the Java heap is
+#     placed in the first 32GB address space. The Java Heap base address is the
+#     maximum limit for the native heap growth. Please use -XX:HeapBaseMinAddress
+#     to set the Java Heap base and to place the Java Heap above 32GB virtual address.
+# This output file may be truncated or incomplete.
+#
+#  Out of Memory Error (os_windows.cpp:3528), pid=23252, tid=35480
+#
+# JRE version:  (20.0.2+9) (build )
+# Java VM: OpenJDK 64-Bit Server VM (20.0.2+9-78, mixed mode, sharing, tiered, compressed oops, compressed class ptrs, g1 gc, windows-amd64)
+# No core dump will be written. Minidumps are not enabled by default on client versions of Windows
+#
+
+---------------  S U M M A R Y ------------
+
+Command Line: -Dmaven.multiModuleProjectDirectory=D:\RideMesh_Project_Execution\RIDEMESH-PHASE3 -Djansi.passthrough=true -Dmaven.home=C:\Program Files (x86)\JetBrains\IntelliJ IDEA Community Edition 2024.1\plugins\maven\lib\maven3 -Dclassworlds.conf=C:\Program Files (x86)\JetBrains\IntelliJ IDEA Community Edition 2024.1\plugins\maven\lib\maven3\bin\m2.conf -Dmaven.ext.class.path=C:\Program Files (x86)\JetBrains\IntelliJ IDEA Community Edition 2024.1\plugins\maven\lib\maven-event-listener.jar -javaagent:C:\Program Files (x86)\JetBrains\IntelliJ IDEA Community Edition 2024.1\lib\idea_rt.jar=62701:C:\Program Files (x86)\JetBrains\IntelliJ IDEA Community Edition 2024.1\bin -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 org.codehaus.classworlds.Launcher -Didea.version=2024.1 spring-boot:run
+
+Host: AMD Ryzen 9 5900HX with Radeon Graphics        , 16 cores, 23G,  Windows 11 , 64 bit Build 26100 (10.0.26100.9711)
+Time: Sun Oct 25 10:12:19 2026 India Standard Time elapsed time: 0.031081 seconds (0d 0h 0m 0s)
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x0000016eea6fd180):  JavaThread "Unknown thread" [_thread_in_vm, id=35480, stack(0x00000057b4100000,0x00000057b4200000)]
+
+Stack: [0x00000057b4100000,0x00000057b4200000]
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+V  [jvm.dll+0x6bc25a]
+V  [jvm.dll+0x84971a]
+V  [jvm.dll+0x84b315]
+V  [jvm.dll+0x84ba13]
+V  [jvm.dll+0x280e4f]
+V  [jvm.dll+0x6b8fe9]
+V  [jvm.dll+0x6adbca]
+V  [jvm.dll+0x35b165]
+V  [jvm.dll+0x363386]
+V  [jvm.dll+0x3b400e]
+V  [jvm.dll+0x3b4295]
+V  [jvm.dll+0x32b86a]
+V  [jvm.dll+0x32c68b]
+V  [jvm.dll+0x8123df]
+V  [jvm.dll+0x3c1261]
+V  [jvm.dll+0x7fe103]
+V  [jvm.dll+0x44ccaf]
+V  [jvm.dll+0x44e621]
+C  [jli.dll+0x5287]
+C  [ucrtbase.dll+0x2cd30]
+C  [KERNEL32.DLL+0x2dda7]
+C  [ntdll.dll+0x7ee4c]
+
+
+---------------  P R O C E S S  ---------------
+
+Threads class SMR info:
+_java_thread_list=0x00007ffb6e3fb118, length=0, elements={
+}
+
+Java Threads: ( => current thread )
+
+Other Threads:
+  0x0000016eea78b530 WorkerThread "GC Thread#0" [stack: 0x00000057b4200000,0x00000057b4300000] [id=26572]
+  0x0000016eea797e90 ConcurrentGCThread "G1 Main Marker" [stack: 0x00000057b4300000,0x00000057b4400000] [id=36248]
+  0x0000016eea798ad0 WorkerThread "G1 Conc#0" [stack: 0x00000057b4400000,0x00000057b4500000] [id=35500]
+
+[error occurred during error reporting (printing all threads), id 0xc0000005, EXCEPTION_ACCESS_VIOLATION (0xc0000005) at pc=0x00007ffb6dbdeea7]
+VM state: not at safepoint (not fully initialized)
+
+VM Mutex/Monitor currently owned by a thread:  ([mutex/lock_event])
+[0x0000016eea6fc420] Heap_lock - owner thread: 0x0000016eea6fd180
+
+Heap address: 0x0000000689800000, size: 5992 MB, Compressed Oops mode: Zero based, Oop shift amount: 3
+
+CDS archive(s) mapped at: [0x0000000000000000-0x0000000000000000-0x0000000000000000), size 0, SharedBaseAddress: 0x0000000800000000, ArchiveRelocationMode: 1.
+Narrow klass base: 0x0000000000000000, Narrow klass shift: 0, Narrow klass range: 0x0
+
+GC Precious Log:
+ CardTable entry size: 512
+ Card Set container configuration: InlinePtr #cards 4 size 8 Array Of Cards #cards 32 size 80 Howl #buckets 8 coarsen threshold 7372 Howl Bitmap #cards 1024 size 144 coarsen threshold 921 Card regions per heap region 1 cards per card region 8192
+
+Heap:
+ garbage-first heap   total 0K, used 0K [0x0000000689800000, 0x0000000800000000)
+  region size 4096K, 0 young (0K), 0 survivors (0K)
+
+[error occurred during error reporting (printing heap information), id 0xc0000005, EXCEPTION_ACCESS_VIOLATION (0xc0000005) at pc=0x00007ffb6dfb47b9]
+GC Heap History (0 events):
+No events
+
+Dll operation events (1 events):
+Event: 0.022 Loaded shared library C:\Users\Vasaikar Yog\.jdks\openjdk-20.0.2\bin\java.dll
+
+Deoptimization events (0 events):
+No events
+
+Classes loaded (0 events):
+No events
+
+Classes unloaded (0 events):
+No events
+
+Classes redefined (0 events):
+No events
+
+Internal exceptions (0 events):
+No events
+
+VM Operations (0 events):
+No events
+
+Events (0 events):
+No events
+
+
+Dynamic libraries:
+0x00007ff6c0510000 - 0x00007ff6c051e000 	C:\Users\Vasaikar Yog\.jdks\openjdk-20.0.2\bin\java.exe
+0x00007ffc4f120000 - 0x00007ffc4f388000 	C:\WINDOWS\SYSTEM32\ntdll.dll
+0x00007ffc4df90000 - 0x00007ffc4e05b000 	C:\WINDOWS\System32\KERNEL32.DLL
+0x00007ffc4ca20000 - 0x00007ffc4ce21000 	C:\WINDOWS\System32\KERNELBASE.dll
+0x00007ffc4c470000 - 0x00007ffc4c5bc000 	C:\WINDOWS\System32\ucrtbase.dll
+0x00007ffc44190000 - 0x00007ffc441a7000 	C:\Users\Vasaikar Yog\.jdks\openjdk-20.0.2\bin\jli.dll
+0x00007ffc12c80000 - 0x00007ffc12c9b000 	C:\Users\Vasaikar Yog\.jdks\openjdk-20.0.2\bin\VCRUNTIME140.dll
+0x00007ffc4dcb0000 - 0x00007ffc4de87000 	C:\WINDOWS\System32\USER32.dll
+0x00007ffc33a60000 - 0x00007ffc33cf1000 	C:\WINDOWS\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.26100.9711_none_3e07b8b0e334e825\COMCTL32.dll
+0x00007ffc4c310000 - 0x00007ffc4c337000 	C:\WINDOWS\System32\win32u.dll
+0x00007ffc4e560000 - 0x00007ffc4e609000 	C:\WINDOWS\System32\msvcrt.dll
+0x00007ffc4e530000 - 0x00007ffc4e55b000 	C:\WINDOWS\System32\GDI32.dll
+0x00007ffc4c340000 - 0x00007ffc4c46a000 	C:\WINDOWS\System32\gdi32full.dll
+0x00007ffc4c690000 - 0x00007ffc4c733000 	C:\WINDOWS\System32\msvcp_win.dll
+0x00007ffc4d940000 - 0x00007ffc4d971000 	C:\WINDOWS\System32\IMM32.DLL
+0x00007ffc44210000 - 0x00007ffc4421c000 	C:\Users\Vasaikar Yog\.jdks\openjdk-20.0.2\bin\vcruntime140_1.dll
+0x00007ffc12bf0000 - 0x00007ffc12c7e000 	C:\Users\Vasaikar Yog\.jdks\openjdk-20.0.2\bin\msvcp140.dll
+0x00007ffb6d8a0000 - 0x00007ffb6e538000 	C:\Users\Vasaikar Yog\.jdks\openjdk-20.0.2\bin\server\jvm.dll
+0x00007ffc4e7b0000 - 0x00007ffc4e86c000 	C:\WINDOWS\System32\ADVAPI32.dll
+0x00007ffc4e0f0000 - 0x00007ffc4e198000 	C:\WINDOWS\System32\sechost.dll
+0x00007ffc4ea70000 - 0x00007ffc4eb88000 	C:\WINDOWS\System32\RPCRT4.dll
+0x00007ffc31ce0000 - 0x00007ffc31cea000 	C:\WINDOWS\SYSTEM32\WSOCK32.dll
+0x00007ffc4dbf0000 - 0x00007ffc4dc71000 	C:\WINDOWS\System32\WS2_32.dll
+0x00007ffc40dc0000 - 0x00007ffc40df7000 	C:\WINDOWS\SYSTEM32\WINMM.dll
+0x00007ffc42a30000 - 0x00007ffc42a3b000 	C:\WINDOWS\SYSTEM32\VERSION.dll
+0x00007ffc4afb0000 - 0x00007ffc4afcb000 	C:\WINDOWS\SYSTEM32\kernel.appcore.dll
+0x00007ffc12be0000 - 0x00007ffc12bea000 	C:\Users\Vasaikar Yog\.jdks\openjdk-20.0.2\bin\jimage.dll
+0x00007ffc41570000 - 0x00007ffc417bc000 	C:\WINDOWS\SYSTEM32\DBGHELP.DLL
+0x00007ffc4e1a0000 - 0x00007ffc4e52b000 	C:\WINDOWS\System32\combase.dll
+0x00007ffc4da90000 - 0x00007ffc4db69000 	C:\WINDOWS\System32\OLEAUT32.dll
+0x00007ffc30900000 - 0x00007ffc3093b000 	C:\WINDOWS\SYSTEM32\dbgcore.DLL
+0x00007ffc4c5d0000 - 0x00007ffc4c67c000 	C:\WINDOWS\System32\bcryptPrimitives.dll
+0x00007ffc0c9f0000 - 0x00007ffc0c9fe000 	C:\Users\Vasaikar Yog\.jdks\openjdk-20.0.2\bin\instrument.dll
+0x00007ffbfd660000 - 0x00007ffbfd686000 	C:\Users\Vasaikar Yog\.jdks\openjdk-20.0.2\bin\java.dll
+
+dbghelp: loaded successfully - version: 4.0.5 - missing functions: none
+symbol engine: initialized successfully - sym options: 0x614 - pdb path: .;C:\Users\Vasaikar Yog\.jdks\openjdk-20.0.2\bin;C:\WINDOWS\SYSTEM32;C:\WINDOWS\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.26100.9711_none_3e07b8b0e334e825;C:\Users\Vasaikar Yog\.jdks\openjdk-20.0.2\bin\server
+
+VM Arguments:
+jvm_args: -Dmaven.multiModuleProjectDirectory=D:\RideMesh_Project_Execution\RIDEMESH-PHASE3 -Djansi.passthrough=true -Dmaven.home=C:\Program Files (x86)\JetBrains\IntelliJ IDEA Community Edition 2024.1\plugins\maven\lib\maven3 -Dclassworlds.conf=C:\Program Files (x86)\JetBrains\IntelliJ IDEA Community Edition 2024.1\plugins\maven\lib\maven3\bin\m2.conf -Dmaven.ext.class.path=C:\Program Files (x86)\JetBrains\IntelliJ IDEA Community Edition 2024.1\plugins\maven\lib\maven-event-listener.jar -javaagent:C:\Program Files (x86)\JetBrains\IntelliJ IDEA Community Edition 2024.1\lib\idea_rt.jar=62701:C:\Program Files (x86)\JetBrains\IntelliJ IDEA Community Edition 2024.1\bin -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 
+java_command: org.codehaus.classworlds.Launcher -Didea.version=2024.1 spring-boot:run
+java_class_path (initial): C:\Program Files (x86)\JetBrains\IntelliJ IDEA Community Edition 2024.1\plugins\maven\lib\maven3\boot\plexus-classworlds-2.7.0.jar;C:\Program Files (x86)\JetBrains\IntelliJ IDEA Community Edition 2024.1\plugins\maven\lib\maven3\boot\plexus-classworlds.license
+Launcher Type: SUN_STANDARD
+
+[Global flags]
+     intx CICompilerCount                          = 12                                        {product} {ergonomic}
+     uint ConcGCThreads                            = 3                                         {product} {ergonomic}
+     uint G1ConcRefinementThreads                  = 13                                        {product} {ergonomic}
+   size_t G1HeapRegionSize                         = 4194304                                   {product} {ergonomic}
+    uintx GCDrainStackTargetSize                   = 64                                        {product} {ergonomic}
+   size_t InitialHeapSize                          = 394264576                                 {product} {ergonomic}
+   size_t MarkStackSize                            = 4194304                                   {product} {ergonomic}
+   size_t MaxHeapSize                              = 6283067392                                {product} {ergonomic}
+   size_t MinHeapDeltaBytes                        = 4194304                                   {product} {ergonomic}
+   size_t MinHeapSize                              = 8388608                                   {product} {ergonomic}
+    uintx NonNMethodCodeHeapSize                   = 7602480                                {pd product} {ergonomic}
+    uintx NonProfiledCodeHeapSize                  = 122027880                              {pd product} {ergonomic}
+    uintx ProfiledCodeHeapSize                     = 122027880                              {pd product} {ergonomic}
+    uintx ReservedCodeCacheSize                    = 251658240                              {pd product} {ergonomic}
+     bool SegmentedCodeCache                       = true                                      {product} {ergonomic}
+   size_t SoftMaxHeapSize                          = 6283067392                             {manageable} {ergonomic}
+     bool UseCompressedClassPointers               = true                           {product lp64_product} {ergonomic}
+     bool UseCompressedOops                        = true                           {product lp64_product} {ergonomic}
+     bool UseG1GC                                  = true                                      {product} {ergonomic}
+     bool UseLargePagesIndividualAllocation        = false                                  {pd product} {ergonomic}
+
+Logging:
+Log output configuration:
+ #0: stdout all=warning uptime,level,tags foldmultilines=false
+ #1: stderr all=off uptime,level,tags foldmultilines=false
+
+Environment Variables:
+JAVA_HOME=C:\Program Files\Java\jdk-20
+PATH=C:\Program Files\ImageMagick-7.1.1-Q16-HDRI;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Program Files (x86)\VMware\VMware Player\bin\;C:\Program Files\Microsoft\jdk-11.0.12.7-hotspot\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\MinGW\bin;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;D:\Anacondaforpython\condabin;D:\Anacondaforpython\Scripts;C:\sqlite3;C:\Program Files\Java\jdk-20\bin;C:\Program Files\Azure Data Studio\bin;C:\ProgramData\chocolatey\bin;C:\Program Files\FFmpeg\bin;C:\Program Files (x86)\Microsoft SQL Server\160\Tools\Binn\;C:\Program Files\Microsoft SQL Server\160\Tools\Binn\;C:\Program Files\Microsoft SQL Server\160\DTS\Binn\;C:\Program Files\Java\jdk-17\bin;C:\Program Files\swipl\bin;C:\minikube;C:\Program Files\Microsoft SQL Server\150\Tools\Binn\;C:\Program Files\Kubernetes\Minikube;C:\Program Files\GitHub CLI\;C:\Program Files\Git\cmd;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;c:\Users\Vasaikar Yog\AppData\Local\Programs\cursor\resources\app\bin;C:\Users\Vasaikar Yog\AppData\Local\Programs\Microsoft VS Code\bin;C:\Program Files\Void\bin;C:\Users\Vasaikar Yog\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files\nodejs\;C:\xampp\php;C:\composer;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files\PowerToys\DSCModules\;C:\Program Files\WSL\;C:\Program Files\PowerShell\7\;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\PowerShell\7;C:/Users/Vasaikar Yog/.gemini/antigravity-ide/bin;C:\Program Files\ImageMagick-7.1.1-Q16-HDRI;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Program Files (x86)\VMware\VMware Player\bin\;C:\Program Files\Microsoft\jdk-11.0.12.7-hotspot\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\MinGW\bin;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;D:\Anacondaforpython\condabin;D:\Anacondaforpython\Scripts;C:\sqlite3;C:\Program Files\Java\jdk-20\bin;C:\Program Files\Azure Data Studio\bin;C:\ProgramData\chocolatey\bin;C:\Program Files\FFmpeg\bin;C:\Program Files (x86)\Microsoft SQL Server\160\Tools\Binn\;C:\Program Files\Microsoft SQL Server\160\Tools\Binn\;C:\Program Files\Microsoft SQL Server\160\DTS\Binn\;C:\Program Files\Java\jdk-17\bin;C:\Program Files\swipl\bin;C:\minikube;C:\Program Files\Microsoft SQL Server\150\Tools\Binn\;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\Kubernetes\Minikube;C:\Program Files\GitHub CLI\;C:\Program Files\Git\cmd;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;c:\Users\Vasaikar Yog\AppData\Local\Programs\cursor\resources\app\bin;C:\Users\Vasaikar Yog\AppData\Local\Programs\Microsoft VS Code\bin;C:\Program Files\Void\bin;C:\Users\Vasaikar Yog\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files\nodejs\;C:\xampp\php;C:\composer;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files\PowerToys\DSCModules\;C:\Program Files\PowerShell\7\;D:\flutter\flutter_windows_3.41.4\bin;C:\Users\Vasaikar Yog\AppData\Local\Programs\Python\Python312\Scripts\;C:\Users\Vasaikar Yog\AppData\Local\Programs\Python\Python312\;C:\Users\Vasaikar Yog\AppData\Local\Programs\Python\Python311\Scripts\;C:\Users\Vasaikar Yog\AppData\Local\Programs\Python\Python311\;C:\Program Files\MySQL\MySQL Shell 8.0\bin\;C:\Users\Vasaikar Yog\AppData\Local\Microsoft\WindowsApps;C:\Users\Vasaikar Yog\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\Vasaikar Yog\.dotnet\tools;C:\Program Files\JetBrains\PyCharm Community Edition 2022.3.1\bin;;C:\Program Files\Azure Data Studio\bin;C:\Users\Vasaikar Yog\AppData\Local\GitHubDesktop\bin;D:\DataSpell 2024.1.3\bin;;C:\Users\Vasaikar Yog\AppData\Local\Programs\mongosh\;C:\Users\Vasaikar Yog\AppData\Local\Programs\Windsurf\bin;C:\Users\Vasaikar Yog\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\Vasaikar Yog\AppData\Roaming\npm;C:\Users\Vasaikar Yog\AppData\Local\Programs\cursor\resources\app\bin;C:\Users\Vasaikar Yog\AppData\Roaming\Composer\vendor\bin;C:\Users\Vasaikar Yog\AppData\Local\Programs\Kiro\bin;C:\Users\Vasaikar Yog\AppData\Local\Programs\Antigravity IDE\bin;C:\Users\Vasaikar Yog\AppData\Local\Programs\Antigravity IDE;C:\Users\Vasaikar Yog\AppData\Local\Programs\IntelliJ IDEA 2025.3.1.1\bin;C:\Users\Vasaikar Yog\AppData\Local\Programs\Ollama;C:\Users\Vasaikar Yog\.local\bin;C:\Users\Vasaikar Yog\AppData\Local\Android\Sdk\platform-tools;;C:\Users\Vasaikar Yog\.maven\apache-maven-3.9.6\bin;C:\Users\Vasaikar Yog\AppData\Local\Programs\Antigravity IDE\bin
+USERNAME=Vasaikar Yog
+OS=Windows_NT
+PROCESSOR_IDENTIFIER=AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD
+TMP=C:\Users\VASAIK~1\AppData\Local\Temp
+TEMP=C:\Users\VASAIK~1\AppData\Local\Temp
+
+
+
+
+---------------  S Y S T E M  ---------------
+
+OS:
+ Windows 11 , 64 bit Build 26100 (10.0.26100.9711)
+OS uptime: 0 days 13:59 hours
+Hyper-V role detected
+
+CPU: total 16 (initial active 16) (16 cores per cpu, 2 threads per core) family 25 model 80 stepping 0 microcode 0xa50000c, cx8, cmov, fxsr, ht, mmx, 3dnowpref, sse, sse2, sse3, ssse3, sse4a, sse4.1, sse4.2, popcnt, lzcnt, tsc, tscinvbit, avx, avx2, aes, erms, clmul, bmi1, bmi2, adx, sha, fma, vzeroupper, clflush, clflushopt, hv, rdtscp, rdpid, fsrm, f16c, cet_ss
+
+Memory: 4k page, system-wide physical 23965M (722M free)
+TotalPageFile size 46833M (AvailPageFile size 214M)
+current process WorkingSet (physical memory assigned to process): 13M, peak: 13M
+current process commit charge ("private bytes"): 71M, peak: 447M
+
+vm_info: OpenJDK 64-Bit Server VM (20.0.2+9-78) for windows-amd64 JRE (20.0.2+9-78), built on 2023-06-14T10:08:48Z by "mach5one" with MS VC++ 17.1 (VS2022)
+
+END.

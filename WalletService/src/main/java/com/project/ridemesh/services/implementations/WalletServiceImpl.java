@@ -26,7 +26,12 @@ public class WalletServiceImpl implements WalletService {
     @Override
     @Transactional
     public Wallet addMoneyToWallet(Long userId, Double amount, String transactionId, Long rideId, TransactionMethod transactionMethod) {
-        Wallet wallet = findByUserId(userId);
+        Wallet wallet;
+        try {
+            wallet = findByUserId(userId);
+        } catch (ResourceNotFoundException e) {
+            wallet = createNewWallet(userId);
+        }
         Double prevAmount = wallet.getBalance();
         Double newAmount = prevAmount + amount;
         wallet.setBalance(newAmount);
@@ -48,7 +53,12 @@ public class WalletServiceImpl implements WalletService {
     @Override
     @Transactional
     public Wallet subtractMoneyFromWallet(Long userId, Double amount, String transactionId, Long rideId, TransactionMethod transactionMethod) {
-        Wallet wallet = findByUserId(userId);
+        Wallet wallet;
+        try {
+            wallet = findByUserId(userId);
+        } catch (ResourceNotFoundException e) {
+            wallet = createNewWallet(userId);
+        }
         Double prevAmount = wallet.getBalance();
         Double newAmount = prevAmount - amount;
         wallet.setBalance(newAmount);

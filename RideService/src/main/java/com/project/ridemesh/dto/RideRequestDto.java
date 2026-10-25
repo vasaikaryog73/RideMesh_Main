@@ -17,6 +17,10 @@ public class RideRequestDto {
     private String vehicleType;
     private String pickupState;
     private String pickupDistrict;
+    private String dropoffState;
+    private String dropoffDistrict;
+    private String pickupAddress;
+    private String dropoffAddress;
 
     public RideRequestDto() {
     }
@@ -84,6 +88,14 @@ public class RideRequestDto {
         this.requestTime = requestTime;
     }
 
+    public LocalDateTime getCreatedTime() {
+        return requestTime;
+    }
+
+    public void setCreatedTime(LocalDateTime createdTime) {
+        this.requestTime = createdTime;
+    }
+
     public RiderDto getRider() {
         return rider;
     }
@@ -130,5 +142,37 @@ public class RideRequestDto {
 
     public void setPickupDistrict(String pickupDistrict) {
         this.pickupDistrict = pickupDistrict;
+    }
+
+    public String getDropoffState() {
+        return dropoffState;
+    }
+
+    public void setDropoffState(String dropoffState) {
+        this.dropoffState = dropoffState;
+    }
+
+    public String getDropoffDistrict() {
+        return dropoffDistrict;
+    }
+
+    public void setDropoffDistrict(String dropoffDistrict) {
+        this.dropoffDistrict = dropoffDistrict;
+    }
+
+    public String getPickupAddress() {
+        return pickupAddress;
+    }
+
+    public void setPickupAddress(String pickupAddress) {
+        this.pickupAddress = pickupAddress;
+    }
+
+    public String getDropoffAddress() {
+        return dropoffAddress;
+    }
+
+    public void setDropoffAddress(String dropoffAddress) {
+        this.dropoffAddress = dropoffAddress;
     }
 }

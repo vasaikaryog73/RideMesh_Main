@@ -7,6 +7,7 @@ import com.project.ridemesh.entities.Rider;
 
 public interface RatingManagementService {
     DriverDto rateDriver(Long rideId, Rider rider, Double rating);
+    DriverDto rateDriver(Long rideId, Rider rider, Double rating, Long driverId);
     RiderDto rateRider(Long rideId, Driver driver, Double rating);
     void createNewRating(Long rideId, Long riderId, Long driverId);
 }

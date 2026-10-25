@@ -39,6 +39,9 @@ public class JwtValidationFilter implements GlobalFilter, Ordered {
         // 1. Exclude public endpoints from JWT validation
         if (path.equals("/auth/login") || 
             path.equals("/auth/signup") || 
+            path.equals("/auth/google") || 
+            path.startsWith("/auth/refresh") || 
+            path.startsWith("/auth/check-username") || 
             path.startsWith("/auth/verify-email") || 
             path.startsWith("/webhooks/razorpay") || 
             path.contains("/v3/api-docs") || 
@@ -65,12 +68,18 @@ public class JwtValidationFilter implements GlobalFilter, Ordered {
                     .getPayload();
 
             Long userId = Long.valueOf(claims.getSubject());
-            String roleClaim = claims.get("role", String.class);
+            Object roleObj = claims.get("role");
+            if (roleObj == null) {
+                roleObj = claims.get("roles");
+            }
+            String roleClaim = roleObj != null ? roleObj.toString() : "";
 
             // Clean brackets and spaces: "[RIDER, DRIVER]" -> "RIDER, DRIVER"
             String cleanedRoles = roleClaim.replace("[", "").replace("]", "").trim();
             String xUserRoles = Arrays.stream(cleanedRoles.split(","))
-                    .map(role -> "ROLE_" + role.trim())
+                    .map(String::trim)
+                    .filter(r -> !r.isEmpty())
+                    .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
                     .collect(Collectors.joining(","));
 
             // 3. Mutate the request headers to forward identity downstream

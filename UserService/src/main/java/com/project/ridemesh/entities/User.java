@@ -16,7 +16,8 @@ import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "app_user", indexes = {
-        @Index(name = "idx_user_email", columnList = "email", unique = true)
+        @Index(name = "idx_user_email", columnList = "email", unique = true),
+        @Index(name = "idx_user_username", columnList = "username", unique = true)
 })
 public class User implements UserDetails {
 
@@ -44,6 +45,35 @@ public class User implements UserDetails {
 
     @Column(nullable = false)
     private Boolean emailVerified = false;
+
+    @Column(name = "username", unique = true, nullable = false, length = 30)
+    private String username;
+
+    @Column(name = "profile_picture_url", length = 500)
+    private String profilePictureUrl = "https://res.cloudinary.com/domckasfk/image/upload/v1774786542/mediscan/reports/ygnjdwtvacvw6rrzmumc.jpg";
+
+    @Column(name = "phone_number", length = 20)
+    private String phoneNumber;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", nullable = false, length = 20)
+    private com.project.ridemesh.entities.enums.AuthProvider authProvider = com.project.ridemesh.entities.enums.AuthProvider.EMAIL;
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public com.project.ridemesh.entities.enums.AuthProvider getAuthProvider() {
+        return authProvider;
+    }
+
+    public void setAuthProvider(com.project.ridemesh.entities.enums.AuthProvider authProvider) {
+        this.authProvider = authProvider;
+    }
 
     public User() {
     }
@@ -100,7 +130,19 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-        return email;
+        return username != null ? username : email;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getProfilePictureUrl() {
+        return profilePictureUrl;
+    }
+
+    public void setProfilePictureUrl(String profilePictureUrl) {
+        this.profilePictureUrl = profilePictureUrl;
     }
 
     public Set<Roles> getRoles() {

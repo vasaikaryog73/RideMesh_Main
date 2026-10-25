@@ -1,7 +1,7 @@
 package com.project.ridemesh.dto;
 
 public class OnboardDriverDto {
-    private Long vehicleId;
+    private String vehicleId;
     private PointDto currentLocation;
     private String vehicleType;
     private String phoneNumber;
@@ -11,12 +11,12 @@ public class OnboardDriverDto {
     public OnboardDriverDto() {
     }
 
-    public OnboardDriverDto(Long vehicleId, PointDto currentLocation) {
+    public OnboardDriverDto(String vehicleId, PointDto currentLocation) {
         this.vehicleId = vehicleId;
         this.currentLocation = currentLocation;
     }
 
-    public OnboardDriverDto(Long vehicleId, PointDto currentLocation, String vehicleType, String phoneNumber, String state, String district) {
+    public OnboardDriverDto(String vehicleId, PointDto currentLocation, String vehicleType, String phoneNumber, String state, String district) {
         this.vehicleId = vehicleId;
         this.currentLocation = currentLocation;
         this.vehicleType = vehicleType;
@@ -25,11 +25,11 @@ public class OnboardDriverDto {
         this.district = district;
     }
 
-    public Long getVehicleId() {
+    public String getVehicleId() {
         return vehicleId;
     }
 
-    public void setVehicleId(Long vehicleId) {
+    public void setVehicleId(String vehicleId) {
         this.vehicleId = vehicleId;
     }
 

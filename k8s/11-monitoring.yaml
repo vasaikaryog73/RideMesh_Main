@@ -1,0 +1,138 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: ridemesh
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 5s
+      evaluation_interval: 5s
+    scrape_configs:
+      - job_name: 'eureka-server'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['eureka-server.ridemesh.svc.cluster.local:8761']
+      - job_name: 'api-gateway'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['apigateway.ridemesh.svc.cluster.local:8089']
+      - job_name: 'user-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['user-service.ridemesh.svc.cluster.local:8081']
+      - job_name: 'ride-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['ride-service.ridemesh.svc.cluster.local:8082']
+      - job_name: 'wallet-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['wallet-service.ridemesh.svc.cluster.local:8083']
+      - job_name: 'notify-service'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['notify-service.ridemesh.svc.cluster.local:8084']
+      - job_name: 'thymeleaf-ui'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['thymeleaf-ui.ridemesh.svc.cluster.local:8085']
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: ridemesh
+  labels:
+    app: prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.51.0
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus"
+          ports:
+            - containerPort: 9090
+              name: web
+          volumeMounts:
+            - name: prometheus-config-volume
+              mountPath: /etc/prometheus
+      volumes:
+        - name: prometheus-config-volume
+          configMap:
+            name: prometheus-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: ridemesh
+  labels:
+    app: prometheus
+spec:
+  type: NodePort
+  ports:
+    - port: 9090
+      targetPort: 9090
+      nodePort: 30090
+      name: web
+  selector:
+    app: prometheus
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: ridemesh
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:10.4.1
+          ports:
+            - containerPort: 3000
+              name: web
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: "admin"
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: "admin"
+            - name: GF_USERS_ALLOW_SIGN_UP
+              value: "false"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: ridemesh
+  labels:
+    app: grafana
+spec:
+  type: NodePort
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30300
+      name: web
+  selector:
+    app: grafana

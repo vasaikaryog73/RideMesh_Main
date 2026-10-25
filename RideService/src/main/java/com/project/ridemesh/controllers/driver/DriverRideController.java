@@ -41,6 +41,17 @@ public class DriverRideController {
         return ResponseEntity.ok(driverRideService.acceptRide(rideRequestId, driver.getId()));
     }
 
+    @PostMapping("/declineRide/{rideRequestId}")
+    public ResponseEntity<Void> declineRide(@PathVariable Long rideRequestId) {
+        UserDto userDto = (UserDto) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        DriverDto driver = userServiceClient.getDriverByUserId(userDto.getId());
+        if (driver == null) {
+            throw new ResourceNotFoundException("Driver profile not found for user: " + userDto.getId());
+        }
+        driverRideService.declineRide(rideRequestId, driver.getId());
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/startRide/{rideId}")
     public ResponseEntity<RideDto> startRide(@PathVariable Long rideId, @RequestBody RideStartDto rideStartDto) {
         UserDto userDto = (UserDto) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -111,5 +122,15 @@ public class DriverRideController {
             throw new ResourceNotFoundException("Driver profile not found for user: " + userDto.getId());
         }
         return ResponseEntity.ok(driverRideService.getActiveRide(driver.getId()));
+    }
+
+    @PostMapping("/confirmCashReceived/{rideId}")
+    public ResponseEntity<RideDto> confirmCashReceived(@PathVariable Long rideId) {
+        UserDto userDto = (UserDto) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        DriverDto driver = userServiceClient.getDriverByUserId(userDto.getId());
+        if (driver == null) {
+            throw new ResourceNotFoundException("Driver profile not found for user: " + userDto.getId());
+        }
+        return ResponseEntity.ok(driverRideService.confirmCashReceived(rideId, driver.getId()));
     }
 }

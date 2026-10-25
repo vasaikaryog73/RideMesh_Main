@@ -48,6 +48,17 @@ public class RiderRideController {
         return ResponseEntity.ok(riderRideService.cancelRide(rideId, rider.getId()));
     }
 
+    @PostMapping("/cancelRequest/{requestId}")
+    public ResponseEntity<Void> cancelRideRequest(@PathVariable Long requestId) {
+        UserDto userDto = (UserDto) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        RiderDto rider = userServiceClient.getRiderByUserId(userDto.getId());
+        if (rider == null) {
+            throw new ResourceNotFoundException("Rider profile not found for user: " + userDto.getId());
+        }
+        riderRideService.cancelRideRequest(requestId, rider.getId());
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/getMyRides")
     public ResponseEntity<Page<RideDto>> getAllMyRides(@RequestParam(defaultValue = "0") Integer pageOffset,
                                                        @RequestParam(defaultValue = "10") Integer pageSize) {
@@ -78,5 +89,34 @@ public class RiderRideController {
             throw new ResourceNotFoundException("Rider profile not found for user: " + userDto.getId());
         }
         return ResponseEntity.ok(riderRideService.getActiveRide(rider.getId()));
+    }
+
+    @PostMapping("/confirmCashPaid/{rideId}")
+    public ResponseEntity<RideDto> confirmCashPaid(@PathVariable Long rideId) {
+        UserDto userDto = (UserDto) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        RiderDto rider = userServiceClient.getRiderByUserId(userDto.getId());
+        if (rider == null) {
+            throw new ResourceNotFoundException("Rider profile not found for user: " + userDto.getId());
+        }
+        return ResponseEntity.ok(riderRideService.confirmCashPaid(rideId, rider.getId()));
+    }
+
+    @PostMapping("/finalizeUpi/{rideId}")
+    public ResponseEntity<RideDto> finalizeUpiPayment(@PathVariable Long rideId) {
+        return ResponseEntity.ok(riderRideService.finalizeUpiPayment(rideId));
+    }
+
+    @PostMapping(value = {"/rateRide/{rideId}", "/completeRide/{rideId}/rate"})
+    public ResponseEntity<RideDto> rateRide(@PathVariable Long rideId, 
+                                            @RequestParam(required = false) Double rating,
+                                            @RequestBody(required = false) java.util.Map<String, Object> body) {
+        Double effectiveRating = rating;
+        if (effectiveRating == null && body != null && body.get("rating") != null) {
+            effectiveRating = Double.parseDouble(body.get("rating").toString());
+        }
+        if (effectiveRating == null) {
+            effectiveRating = 5.0;
+        }
+        return ResponseEntity.ok(riderRideService.rateRide(rideId, effectiveRating));
     }
 }

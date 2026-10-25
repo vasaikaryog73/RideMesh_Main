@@ -28,3 +28,14 @@ The **User Service** manages user authentication, role-based access control (`RO
 ### Rider Profile APIs (`rider-get-mapping`, `rider-post-mapping`)
 - `GET /rider/getMyProfile` - Get authenticated rider profile
 - `POST /rider/rateDriver/{rideId}` - Rate driver
+
+### Driver Incident Reporting APIs (`/auth/driver-reports`)
+- `POST /auth/driver-reports` - Submit driver report with compulsory evidence media (dispatches email confirmation)
+- `GET /auth/driver-reports` - List all reports for Admin review
+- `POST /auth/driver-reports/{reportId}/send-notice` - Send official warning/notice to reported driver
+- `POST /auth/driver-reports/{reportId}/suspend-driver` - Suspend driver account directly
+
+### Improvement Console & Feedback APIs (`/auth/feedback`)
+- `POST /auth/feedback` - Submit user feedback, suggestions, complaints, or bug reports (compulsory media for bugs)
+- `GET /auth/feedback` - List feedback items filtered by type for Admin Improvement Console
+- `POST /auth/feedback/{id}/reply` - Admin email response to user inquiry via Kafka notification

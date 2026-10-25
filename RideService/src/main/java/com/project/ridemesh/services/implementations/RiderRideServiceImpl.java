@@ -48,8 +48,9 @@ public class RiderRideServiceImpl implements RiderRideService {
     private final DistanceCalculationService distanceCalculationService;
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
+    private final com.project.ridemesh.services.GeminiLocationClassifierService geminiLocationClassifierService;
 
-    public RiderRideServiceImpl(ModelMapper modelMapper, RideRequestRepository rideRequestRepository, RideRepository rideRepository, RideFareCalculationStrategyManager rideFareCalculationStrategyManager, DriverMatchingStrategyManager driverMatchingStrategyManager, UserServiceClient userServiceClient, WalletServiceClient walletServiceClient, DistanceCalculationService distanceCalculationService, KafkaTemplate<String, String> kafkaTemplate, ObjectMapper objectMapper) {
+    public RiderRideServiceImpl(ModelMapper modelMapper, RideRequestRepository rideRequestRepository, RideRepository rideRepository, RideFareCalculationStrategyManager rideFareCalculationStrategyManager, DriverMatchingStrategyManager driverMatchingStrategyManager, UserServiceClient userServiceClient, WalletServiceClient walletServiceClient, DistanceCalculationService distanceCalculationService, KafkaTemplate<String, String> kafkaTemplate, ObjectMapper objectMapper, com.project.ridemesh.services.GeminiLocationClassifierService geminiLocationClassifierService) {
         this.modelMapper = modelMapper;
         this.rideRequestRepository = rideRequestRepository;
         this.rideRepository = rideRepository;
@@ -60,6 +61,7 @@ public class RiderRideServiceImpl implements RiderRideService {
         this.distanceCalculationService = distanceCalculationService;
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper;
+        this.geminiLocationClassifierService = geminiLocationClassifierService;
     }
 
     @Override
@@ -74,6 +76,21 @@ public class RiderRideServiceImpl implements RiderRideService {
         String[] locationDetails = resolveStateAndDistrict(pickupLat, pickupLon);
         rideRequest.setPickupState(locationDetails[0]);
         rideRequest.setPickupDistrict(locationDetails[1]);
+
+        if (rideRequest.getDropOffLocation() != null) {
+            Double dropoffLat = rideRequest.getDropOffLocation().getY();
+            Double dropoffLon = rideRequest.getDropOffLocation().getX();
+            String[] dropoffDetails = resolveStateAndDistrict(dropoffLat, dropoffLon);
+            rideRequest.setDropoffState(dropoffDetails[0]);
+            rideRequest.setDropoffDistrict(dropoffDetails[1]);
+        }
+
+        if (rideRequestDto.getPickupAddress() != null && !rideRequestDto.getPickupAddress().trim().isEmpty()) {
+            rideRequest.setPickupAddress(rideRequestDto.getPickupAddress().trim());
+        }
+        if (rideRequestDto.getDropoffAddress() != null && !rideRequestDto.getDropoffAddress().trim().isEmpty()) {
+            rideRequest.setDropoffAddress(rideRequestDto.getDropoffAddress().trim());
+        }
 
         Double distance = distanceCalculationService.calculateDistance(rideRequest.getPickUpLocation(), rideRequest.getDropOffLocation());
         if (distance > 50.0) {
@@ -90,8 +107,12 @@ public class RiderRideServiceImpl implements RiderRideService {
         double fare = rideFareCalculationStrategyManager.rideFareCalculation().calculateFare(rideRequest);
         rideRequest.setFare(fare);
 
+        // Fetch Rider profile for rating and user mapping
+        RiderDto riderDto = userServiceClient.getRiderById(riderId);
+        Long userId = (riderDto != null && riderDto.getUser() != null) ? riderDto.getUser().getId() : riderId;
+
         if (rideRequest.getPaymentMethod() == com.project.ridemesh.entities.enums.PaymentMethod.WALLET) {
-            WalletDto wallet = walletServiceClient.getWalletBalance(riderId);
+            WalletDto wallet = walletServiceClient.getWalletBalance(userId);
             if (wallet == null || wallet.getBalance() == null || wallet.getBalance() < fare) {
                 throw new RuntimeConflictException("Insufficient wallet balance. Calculated fare is ₹" + String.format("%.2f", fare) + " but wallet balance is ₹" + (wallet != null ? String.format("%.2f", wallet.getBalance()) : "0.00"));
             }
@@ -99,8 +120,6 @@ public class RiderRideServiceImpl implements RiderRideService {
 
         RideRequest savedRequest = rideRequestRepository.save(rideRequest);
 
-        // Fetch Rider rating to choose driver matching strategy
-        RiderDto riderDto = userServiceClient.getRiderById(riderId);
         double riderRating = riderDto != null ? riderDto.getRating() : 5.0;
 
         List<DriverDto> matchingDrivers = driverMatchingStrategyManager
@@ -132,8 +151,15 @@ public class RiderRideServiceImpl implements RiderRideService {
             throw new RuntimeConflictException("Rider does not own this ride.");
         }
 
-        if (ride.getStatus() != RideStatus.CONFIRMED && ride.getStatus() != RideStatus.ONGOING) {
-            throw new RuntimeConflictException("Ride cannot be cancelled from status: " + ride.getStatus());
+        // If status is IN_PROGRESS or COMPLETED, throw a 400 Bad Request error
+        if (ride.getStatus() == RideStatus.IN_PROGRESS || ride.getStatus() == RideStatus.ONGOING ||
+            ride.getStatus() == RideStatus.COMPLETED || ride.getStatus() == RideStatus.PAYMENT_COMPLETED ||
+            ride.getStatus() == RideStatus.ENDED) {
+            throw new com.project.ridemesh.booking.exceptions.InvalidBookingStateException("Cannot cancel a ride that is already in progress or completed.");
+        }
+
+        if (ride.getStatus() != RideStatus.REQUESTED && ride.getStatus() != RideStatus.ACCEPTED && ride.getStatus() != RideStatus.CONFIRMED) {
+            throw new com.project.ridemesh.booking.exceptions.InvalidBookingStateException("Ride can only be cancelled when in REQUESTED or ACCEPTED state. Current state: " + ride.getStatus());
         }
 
         ride.setStatus(RideStatus.CANCELLED);
@@ -143,6 +169,24 @@ public class RiderRideServiceImpl implements RiderRideService {
         kafkaTemplate.send("ride-cancelled-event", String.valueOf(ride.getDriverId()));
 
         return mapToRideDto(savedRide);
+    }
+
+    @Override
+    @Transactional
+    public void cancelRideRequest(Long rideRequestId, Long riderId) {
+        RideRequest request = rideRequestRepository.findById(rideRequestId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ride request not found with ID: " + rideRequestId));
+
+        if (!request.getRiderId().equals(riderId)) {
+            throw new RuntimeConflictException("Rider does not own this ride request.");
+        }
+
+        if (request.getStatus() != RideRequestStatus.PENDING && request.getStatus() != RideRequestStatus.REQUESTED) {
+            throw new RuntimeConflictException("Ride request cannot be cancelled from status: " + request.getStatus());
+        }
+
+        request.setStatus(RideRequestStatus.CANCELLED);
+        rideRequestRepository.save(request);
     }
 
     @Override
@@ -174,33 +218,93 @@ public class RiderRideServiceImpl implements RiderRideService {
             throw new RuntimeConflictException("Rider does not own this ride.");
         }
 
-        if (ride.getStatus() != RideStatus.ONGOING) {
-            throw new RuntimeConflictException("Ride cannot be completed from status: " + ride.getStatus());
+        if (ride.getStatus() != RideStatus.IN_PROGRESS && ride.getStatus() != RideStatus.ONGOING 
+                && ride.getStatus() != RideStatus.PENDING_CUSTOMER_APPROVAL) {
+            throw new com.project.ridemesh.booking.exceptions.InvalidBookingStateException("Ride cannot be confirmed from status: " + ride.getStatus());
         }
 
-        if (ride.getPaymentMethod() != com.project.ridemesh.entities.enums.PaymentMethod.WALLET) {
-            throw new RuntimeConflictException("Rider confirmation is only supported for WALLET payments.");
+        // If payment method is WALLET, ensure rider wallet has sufficient balance
+        if (ride.getPaymentMethod() == com.project.ridemesh.entities.enums.PaymentMethod.WALLET) {
+            Long riderUserId = riderId;
+            try {
+                RiderDto riderDto = userServiceClient.getRiderById(riderId);
+                if (riderDto != null && riderDto.getUser() != null) {
+                    riderUserId = riderDto.getUser().getId();
+                }
+            } catch (Exception e) {
+                log.warn("Could not fetch rider user ID: " + e.getMessage());
+            }
+
+            com.project.ridemesh.dto.WalletDto wallet = walletServiceClient.getWalletBalance(riderUserId);
+            if (wallet == null || wallet.getBalance() == null || wallet.getBalance() < ride.getFare()) {
+                double currentBal = (wallet != null && wallet.getBalance() != null) ? wallet.getBalance() : 0.0;
+                throw new RuntimeConflictException("Insufficient wallet balance (₹" + String.format("%.2f", currentBal)
+                        + "). Trip fare is ₹" + String.format("%.2f", ride.getFare()) + ". Please load funds into your wallet to confirm.");
+            }
         }
 
         ride.setRiderCompleted(true);
+        ride.setEndedAt(java.time.LocalDateTime.now());
+
         if (Boolean.TRUE.equals(ride.getDriverCompleted())) {
-            ride.setEndedAt(java.time.LocalDateTime.now());
-            ride.setStatus(RideStatus.PAYMENT_COMPLETED);
+            if (ride.getPaymentMethod() == com.project.ridemesh.entities.enums.PaymentMethod.WALLET) {
+                ride.setStatus(RideStatus.PAYMENT_COMPLETED);
+            } else {
+                ride.setStatus(RideStatus.COMPLETED);
+            }
             Ride completedRide = rideRepository.save(ride);
             publishRideEnded(completedRide);
             return mapToRideDto(completedRide);
         } else {
-            Ride savedRide = rideRepository.save(ride);
-            return mapToRideDto(savedRide);
+            // Driver hasn't confirmed yet
+            Ride saved = rideRepository.save(ride);
+            return mapToRideDto(saved);
         }
     }
 
     private void publishRideEnded(Ride endedRide) {
         try {
+            Long riderUserId = endedRide.getRiderId();
+            Long driverUserId = endedRide.getDriverId();
+            try {
+                RiderDto riderDto = userServiceClient.getRiderById(endedRide.getRiderId());
+                if (riderDto != null && riderDto.getUser() != null) {
+                    riderUserId = riderDto.getUser().getId();
+                }
+            } catch (Exception e) {
+                log.warn("Could not fetch rider user ID: " + e.getMessage());
+            }
+
+            try {
+                DriverDto driverDto = userServiceClient.getDriverById(endedRide.getDriverId());
+                if (driverDto != null && driverDto.getUser() != null) {
+                    driverUserId = driverDto.getUser().getId();
+                }
+            } catch (Exception e) {
+                log.warn("Could not fetch driver user ID: " + e.getMessage());
+            }
+
+            // Settle wallet payment synchronously if payment method is WALLET
+            if (endedRide.getPaymentMethod() == com.project.ridemesh.entities.enums.PaymentMethod.WALLET) {
+                try {
+                    walletServiceClient.settleRidePayment(
+                            endedRide.getId(),
+                            riderUserId,
+                            driverUserId,
+                            endedRide.getFare(),
+                            "WALLET"
+                    );
+                } catch (Exception e) {
+                    log.error("Failed to settle wallet payment synchronously for ride " + endedRide.getId(), e);
+                }
+            }
+
             java.util.Map<String, Object> payload = new java.util.HashMap<>();
             payload.put("rideId", endedRide.getId());
             payload.put("riderId", endedRide.getRiderId());
             payload.put("driverId", endedRide.getDriverId());
+            payload.put("riderUserId", riderUserId);
+            payload.put("driverUserId", driverUserId);
             payload.put("fare", endedRide.getFare());
             payload.put("paymentMethod", endedRide.getPaymentMethod().name());
 
@@ -213,9 +317,48 @@ public class RiderRideServiceImpl implements RiderRideService {
 
     @Override
     public RideDto getActiveRide(Long riderId) {
-        List<Ride> rides = rideRepository.findByRiderIdAndStatusIn(riderId, List.of(RideStatus.CONFIRMED, RideStatus.ONGOING));
+        List<Ride> rides = rideRepository.findByRiderIdAndStatusIn(riderId, List.of(
+                RideStatus.REQUESTED, RideStatus.ACCEPTED, RideStatus.CONFIRMED,
+                RideStatus.IN_PROGRESS, RideStatus.ONGOING, 
+                RideStatus.PENDING_CUSTOMER_APPROVAL,
+                RideStatus.COMPLETED
+        ));
         if (rides.isEmpty()) return null;
         return mapToRideDto(rides.get(0));
+    }
+
+    @Override
+    @Transactional
+    public RideDto confirmCashPaid(Long rideId, Long riderId) {
+        Ride ride = rideRepository.findById(rideId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ride not found with ID: " + rideId));
+        if (!ride.getRiderId().equals(riderId)) {
+            throw new RuntimeConflictException("Rider does not own this ride.");
+        }
+        ride.setCashPaid(true);
+        Ride saved = rideRepository.save(ride);
+        return mapToRideDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public RideDto finalizeUpiPayment(Long rideId) {
+        Ride ride = rideRepository.findById(rideId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ride not found with ID: " + rideId));
+        ride.setStatus(RideStatus.PAYMENT_COMPLETED);
+        Ride saved = rideRepository.save(ride);
+        return mapToRideDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public RideDto rateRide(Long rideId, Double rating) {
+        Ride ride = rideRepository.findById(rideId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ride not found with ID: " + rideId));
+        ride.setDriverRating(rating);
+        ride.setStatus(RideStatus.RIDER_RATED);
+        Ride saved = rideRepository.save(ride);
+        return mapToRideDto(saved);
     }
 
     private RideDto mapToRideDto(Ride ride) {
@@ -230,11 +373,39 @@ public class RiderRideServiceImpl implements RiderRideService {
         } catch (Exception e) {
             log.warn("Failed to populate rider/driver profiles in RideDto: " + e.getMessage());
         }
+
+        // Auto-sync rating from UserService if not yet recorded on Ride entity
+        if (rideDto.getDriverRating() == null || rideDto.getDriverRating() == 0.0) {
+            try {
+                Double rating = userServiceClient.getDriverRatingForRide(ride.getId());
+                if (rating != null && rating > 0.0) {
+                    rideDto.setDriverRating(rating);
+                    ride.setDriverRating(rating);
+                    if (ride.getStatus() != RideStatus.RIDER_RATED) {
+                        ride.setStatus(RideStatus.RIDER_RATED);
+                    }
+                    rideRepository.save(ride);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
         return rideDto;
     }
 
     private String[] resolveStateAndDistrict(double lat, double lon) {
-        // 1. Bounding box check
+        // 1. Google Gemini AI location classification for State & District
+        try {
+            String[] geminiResult = geminiLocationClassifierService.classifyLocation(lat, lon);
+            if (geminiResult != null && geminiResult.length == 2 && geminiResult[0] != null && geminiResult[1] != null) {
+                log.info("Classified pickup coordinates via Gemini AI: State=" + geminiResult[0] + ", District=" + geminiResult[1]);
+                return geminiResult;
+            }
+        } catch (Exception e) {
+            log.warn("Gemini AI classification failed: " + e.getMessage() + ". Falling back to local rules.");
+        }
+
+        // 2. Bounding box check
         if ((lon >= 72.75 && lon <= 72.95) && (lat >= 19.00 && lat <= 19.30)) {
             return new String[]{"Maharashtra", "Mumbai Suburban"};
         }

@@ -8,6 +8,7 @@ import com.project.ridemesh.entities.User;
 public interface RiderService {
     RiderDto getRiderProfile();
     DriverDto rateDriver(Long rideId, Double rating);
+    DriverDto rateDriver(Long rideId, Double rating, Long driverId);
     void createNewRider(User savedUser);
     Rider getCurrentRider();
     Rider getRiderById(Long id);

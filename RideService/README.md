@@ -1,11 +1,12 @@
 # Ride Service (Port 8082)
 
 ## Overview
-The **Ride Service** orchestrates the complete lifecycle of a ride request: fare calculation, driver matching, OTP generation, ride starting, ride completion, cancellation, and ride history.
+The **Ride Service** orchestrates the complete lifecycle of a ride request: fare calculation, driver matching, OTP generation, ride starting, ride completion, cancellation, full pickup/dropoff address persistence, and ride history.
 
 ## Database
 - **Engine**: PostgreSQL
 - **Database**: `ridemesh_ride_db`
+- **Key Columns**: Persists complete, unabbreviated addresses in `pickup_address` and `dropoff_address` (length 1000).
 
 ## Kafka Topics
 - **Produces**:

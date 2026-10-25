@@ -38,4 +38,59 @@ public class LocationUtil {
                 return Collections.emptyList();
         }
     }
+
+    public static boolean isDistrictMatch(String driverDistrict, String reqDistrict) {
+        if (driverDistrict == null || driverDistrict.isBlank() || reqDistrict == null || reqDistrict.isBlank()) {
+            return true;
+        }
+        String d1 = cleanDistrictName(driverDistrict);
+        String d2 = cleanDistrictName(reqDistrict);
+
+        if (d1.equals(d2)) return true;
+        if (d1.contains(d2) || d2.contains(d1)) return true;
+
+        if ((d1.contains("mumbai") && d2.contains("mumbai")) ||
+            (d1.contains("bengaluru") && d2.contains("bengaluru")) ||
+            (d1.contains("bangalore") && (d2.contains("bangalore") || d2.contains("bengaluru"))) ||
+            (d1.contains("delhi") && d2.contains("delhi"))) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static String cleanDistrictName(String name) {
+        if (name == null) return "";
+        return name.toLowerCase()
+                .replaceAll("\\b(district|dist|city|suburban|rural|urban)\\b", "")
+                .replaceAll("[^a-z0-9]", "")
+                .trim();
+    }
+
+    public static boolean isVehicleTypeMatch(String driverVehicleType, String requestedVehicleType) {
+        if (requestedVehicleType == null || requestedVehicleType.isBlank()) {
+            return true;
+        }
+        if (driverVehicleType == null || driverVehicleType.isBlank()) {
+            return false;
+        }
+        String d = driverVehicleType.trim().toLowerCase();
+        String r = requestedVehicleType.trim().toLowerCase();
+
+        if (d.equals(r)) {
+            return true;
+        }
+
+        // Scooter and scooty alias
+        if ((d.equals("scooter") || d.equals("scooty")) && (r.equals("scooter") || r.equals("scooty"))) {
+            return true;
+        }
+
+        // Auto / Rickshaw alias
+        if ((d.contains("rickshaw") || d.contains("auto")) && (r.contains("rickshaw") || r.contains("auto"))) {
+            return true;
+        }
+
+        return false;
+    }
 }

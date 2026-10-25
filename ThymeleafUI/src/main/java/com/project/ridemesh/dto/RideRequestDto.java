@@ -1,9 +1,11 @@
 package com.project.ridemesh.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.project.ridemesh.entities.enums.PaymentMethod;
 import com.project.ridemesh.entities.enums.RideRequestStatus;
 import java.time.LocalDateTime;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class RideRequestDto {
     private Long id;
     private PointDto pickUpLocation;
@@ -17,6 +19,10 @@ public class RideRequestDto {
     private String vehicleType;
     private String pickupState;
     private String pickupDistrict;
+    private String dropoffState;
+    private String dropoffDistrict;
+    private String pickupAddress;
+    private String dropoffAddress;
 
     public RideRequestDto() {
     }
@@ -59,6 +65,14 @@ public class RideRequestDto {
 
     public void setRequestTime(LocalDateTime requestTime) {
         this.requestTime = requestTime;
+    }
+
+    public LocalDateTime getCreatedTime() {
+        return requestTime;
+    }
+
+    public void setCreatedTime(LocalDateTime createdTime) {
+        this.requestTime = createdTime;
     }
 
     public RiderDto getRider() {
@@ -107,5 +121,37 @@ public class RideRequestDto {
 
     public void setPickupDistrict(String pickupDistrict) {
         this.pickupDistrict = pickupDistrict;
+    }
+
+    public String getDropoffState() {
+        return dropoffState;
+    }
+
+    public void setDropoffState(String dropoffState) {
+        this.dropoffState = dropoffState;
+    }
+
+    public String getDropoffDistrict() {
+        return dropoffDistrict;
+    }
+
+    public void setDropoffDistrict(String dropoffDistrict) {
+        this.dropoffDistrict = dropoffDistrict;
+    }
+
+    public String getPickupAddress() {
+        return pickupAddress;
+    }
+
+    public void setPickupAddress(String pickupAddress) {
+        this.pickupAddress = pickupAddress;
+    }
+
+    public String getDropoffAddress() {
+        return dropoffAddress;
+    }
+
+    public void setDropoffAddress(String dropoffAddress) {
+        this.dropoffAddress = dropoffAddress;
     }
 }

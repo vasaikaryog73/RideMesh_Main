@@ -23,4 +23,19 @@ public class WalletServiceClient {
             return null;
         }
     }
+
+    public void settleRidePayment(Long rideId, Long riderUserId, Long driverUserId, Double fare, String paymentMethod) {
+        String url = WALLET_SERVICE_BASE_URL + "/wallet/internal/settle-ride";
+        try {
+            java.util.Map<String, Object> req = new java.util.HashMap<>();
+            req.put("rideId", rideId);
+            req.put("riderUserId", riderUserId);
+            req.put("driverUserId", driverUserId);
+            req.put("fare", fare);
+            req.put("paymentMethod", paymentMethod);
+            restTemplate.postForObject(url, req, java.util.Map.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

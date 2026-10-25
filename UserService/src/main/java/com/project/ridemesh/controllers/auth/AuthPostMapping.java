@@ -21,9 +21,20 @@ public class AuthPostMapping {
     @Value("${deploy.env}")
     private String deployment;
     private final AuthService authService;
+    private final com.project.ridemesh.services.UserService userService;
+    private final com.project.ridemesh.security.JwtService jwtService;
 
-    public AuthPostMapping(AuthService authService) {
+    public AuthPostMapping(AuthService authService, com.project.ridemesh.services.UserService userService, com.project.ridemesh.security.JwtService jwtService) {
         this.authService = authService;
+        this.userService = userService;
+        this.jwtService = jwtService;
+    }
+
+    @PostMapping(path = "/refresh-token/{userId}")
+    public ResponseEntity<LoginResponseDto> refreshTokenForUser(@PathVariable Long userId) {
+        com.project.ridemesh.entities.User user = userService.getUserFromId(userId);
+        String accessToken = jwtService.getAccessJwtToken(user);
+        return ResponseEntity.ok(new LoginResponseDto(accessToken));
     }
 
     @PostMapping(path = "/signup")
@@ -76,5 +87,38 @@ public class AuthPostMapping {
     public ResponseEntity<Void> verifyEmail(@RequestParam String token) {
         authService.verifyEmail(token);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping(path = "/google")
+    public ResponseEntity<LoginResponseDto> googleAuth(@RequestBody GoogleAuthDto googleAuthDto, HttpServletResponse httpServletResponse){
+        String[] tokens = authService.loginOrSignupWithGoogle(googleAuthDto);
+        Cookie cookie = new Cookie("refreshToken", tokens[1]);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(deployment.equals("production"));
+        cookie.setPath("/auth/refresh");
+        httpServletResponse.addCookie(cookie);
+
+        return ResponseEntity.ok(new LoginResponseDto(tokens[0]));
+    }
+
+    @GetMapping(path = "/check-username")
+    public ResponseEntity<Boolean> checkUsername(@RequestParam String username) {
+        return ResponseEntity.ok(authService.checkUsernameExists(username));
+    }
+
+    @PutMapping(path = "/profile")
+    public ResponseEntity<UserDto> updateProfile(@RequestHeader(value = "X-User-Id", required = false) Long headerUserId,
+                                                 @RequestBody UpdateProfileDto updateProfileDto) {
+        Long userId = headerUserId;
+        if (userId == null) {
+            Object principal = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            if (principal instanceof com.project.ridemesh.entities.User) {
+                userId = ((com.project.ridemesh.entities.User) principal).getId();
+            }
+        }
+        if (userId == null) {
+            throw new org.springframework.security.authentication.AuthenticationCredentialsNotFoundException("User not authenticated");
+        }
+        return ResponseEntity.ok(userService.updateProfile(userId, updateProfileDto));
     }
 }

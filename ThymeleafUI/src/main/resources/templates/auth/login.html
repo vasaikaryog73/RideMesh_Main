@@ -11,8 +11,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
         body {
-            background-color: #f8fafc;
-            color: #0f172a;
+            background-color: var(--color-bg, #ffffff);
+            color: var(--color-text, #0f172a);
             font-family: 'Inter', sans-serif;
         }
         .glass-card {
@@ -35,9 +35,9 @@
 </head>
 <body class="min-h-screen flex flex-col justify-between">
     <!-- Header / Navbar -->
-    <nav class="glass-card py-4 px-8 flex justify-between items-center border-b border-slate-200 relative z-20">
+    <nav class="glass-card py-4 px-4 sm:px-8 flex justify-between items-center border-b border-slate-200 relative z-20">
         <div class="flex items-center space-x-3">
-            <img src="https://res.cloudinary.com/dvb5mesnd/image/upload/v1788200216/RideMeshIcon-main_z7q9bk.png" alt="RideMesh Logo" class="w-8 h-8 rounded-lg object-contain shadow-sm" />
+            <img src="https://res.cloudinary.com/dvb5mesnd/image/upload/v1792821669/RideMeshIcon-modified_hwnpel.png" alt="RideMesh Logo" class="w-8 h-8 rounded-lg object-contain shadow-sm" />
             <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                 RideMesh
             </span>
@@ -49,19 +49,19 @@
                     title="Toggle Theme">
                 <i class="fa-solid fa-sun text-amber-500" id="theme-toggle-icon"></i>
             </button>
-            <a th:href="@{/signup}" class="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-sm font-semibold text-white transition glow-btn shadow-lg">Sign Up</a>
+            <a th:href="@{/signup}" class="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-sm font-semibold text-white transition glow-btn shadow-lg nav-action-btn">Sign Up</a>
         </div>
     </nav>
 
-    <div class="flex-grow flex items-center justify-center p-6 relative overflow-hidden">
+    <div class="flex-grow flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
         <!-- Background decorative gradients -->
         <div class="absolute -top-40 -left-40 w-96 h-96 bg-purple-600 rounded-full filter blur-3xl opacity-5 animate-pulse"></div>
         <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-500 rounded-full filter blur-3xl opacity-5 animate-pulse"></div>
 
-        <div class="glass-card w-full max-w-md p-8 rounded-2xl shadow-2xl relative z-10">
+        <div class="glass-card w-full max-w-md p-6 sm:p-8 rounded-2xl shadow-2xl relative z-10">
             <div class="text-center mb-8">
                 <div class="flex items-center justify-center space-x-2 mb-2">
-                    <img src="https://res.cloudinary.com/dvb5mesnd/image/upload/v1788200216/RideMeshIcon-main_z7q9bk.png" alt="RideMesh Logo" class="w-10 h-10 rounded-lg object-contain" />
+                    <img src="https://res.cloudinary.com/dvb5mesnd/image/upload/v1792821669/RideMeshIcon-modified_hwnpel.png" alt="RideMesh Logo" class="w-10 h-10 rounded-lg object-contain" />
                     <h1 class="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                         <a th:href="@{/}">RideMesh</a>
                     </h1>
@@ -81,6 +81,9 @@
             </div>
             <div th:if="${param.logout}" class="bg-purple-50 border border-purple-200 text-purple-800 text-sm p-4 rounded-lg mb-6 text-center">
                 Logged out successfully.
+            </div>
+            <div th:if="${param.googleError}" class="bg-rose-100 border border-rose-300 text-rose-800 text-sm p-4 rounded-lg mb-6 text-center">
+                Google sign-in could not be completed. Please try again.
             </div>
             <div th:if="${error}" class="bg-rose-100 border border-rose-300 text-rose-800 text-sm p-4 rounded-lg mb-6 text-center">
                 <span th:text="${error}"></span>
@@ -107,6 +110,24 @@
                     Log In
                 </button>
             </form>
+
+            <!-- Divider -->
+            <div class="relative flex items-center justify-center my-6">
+                <div class="border-t border-slate-200 dark:border-slate-700 w-full"></div>
+                <span class="bg-white dark:bg-slate-900 px-3 text-xs text-slate-400 font-semibold uppercase tracking-wider absolute">OR</span>
+            </div>
+
+            <!-- Google Sign-In Button -->
+            <a th:href="@{/auth/google}" 
+               class="w-full flex items-center justify-center space-x-3 py-3 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm transition shadow-sm hover:shadow">
+                <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+                    <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                </svg>
+                <span>Sign in with Google</span>
+            </a>
 
             <div class="mt-8 text-center text-sm text-slate-500">
                 Don't have an account? 

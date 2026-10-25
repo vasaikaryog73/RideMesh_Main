@@ -196,4 +196,8 @@ public class DriverApplicationDto {
     public void setIdentityDocType(String identityDocType) {
         this.identityDocType = identityDocType;
     }
+
+    public String getFormattedId() {
+        return id != null ? String.format("%05d", id) : "00000";
+    }
 }

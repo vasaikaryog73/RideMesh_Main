@@ -9,8 +9,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            background-color: #0b0f19;
-            color: #f3f4f6;
+            background-color: var(--color-bg, #ffffff);
+            color: var(--color-text, #0f172a);
             font-family: 'Inter', sans-serif;
         }
         .glass-card {
@@ -19,20 +19,22 @@
             border: 1px solid rgba(255, 255, 255, 0.06);
         }
     </style>
+    <!-- Include Theme Styles in head for instant theme rendering without flicker -->
+    <th:block th:replace="~{fragments/navigation :: themeStyles}"></th:block>
 </head>
-<body class="min-h-screen flex">
+<body class="min-h-screen flex flex-col lg:flex-row w-full overflow-x-hidden">
 
     <!-- Sidebar fragment injection -->
     <div th:replace="~{fragments/navigation :: sidebar('become-driver', ${currentUser})}"></div>
 
-    <div class="flex-grow flex flex-col min-h-screen">
+    <div class="flex-1 flex flex-col min-h-screen w-full min-w-0">
         <!-- Top Navbar fragment injection -->
         <header th:replace="~{fragments/navigation :: navbar(${currentUser})}"></header>
 
-        <main class="flex-grow p-8 flex items-start justify-center relative overflow-hidden">
+        <main class="flex-grow p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 relative overflow-hidden">
             <div class="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600 rounded-full filter blur-3xl opacity-10 animate-pulse"></div>
             
-            <div class="w-full max-w-2xl relative z-10 space-y-6">
+            <div class="w-full relative z-10 space-y-6 sm:space-y-8">
 
                 <!-- Alert Messages -->
                 <div th:if="${errorMessage != null}" class="p-4 rounded-xl bg-rose-950/50 border border-rose-500/30 text-rose-400 text-sm text-center shadow-lg">
@@ -42,7 +44,132 @@
                     <span th:text="${successMessage}">Success description</span>
                 </div>
 
-                <div class="glass-card p-8 rounded-2xl shadow-2xl space-y-6">
+                <!-- VIEW 1: Application Received / Pending Decision -->
+                <div th:if="${myApplication != null && myApplication.status == 'PENDING'}" class="glass-card p-4 sm:p-6 lg:p-8 rounded-2xl shadow-2xl space-y-6">
+                    <div class="text-center space-y-3 pb-6 border-b border-gray-950">
+                        <div class="w-16 h-16 rounded-2xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400 text-3xl mx-auto shadow-lg shadow-orange-500/10">
+                            <i class="fa-solid fa-hourglass-half animate-pulse"></i>
+                        </div>
+                        <div>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider bg-orange-950/60 text-orange-400 border border-orange-500/30">
+                                <span class="w-2 h-2 rounded-full bg-orange-400 animate-ping"></span>
+                                Decision Pending by Admin
+                            </span>
+                        </div>
+                        <h2 class="text-2xl font-bold text-white">Your Application Received</h2>
+                        <p class="text-sm text-gray-400 max-w-md mx-auto">
+                            We've received your application to become a driver. Your submitted vehicle specifications and driving documents are currently pending decision by our administration team. Please wait for approval.
+                        </p>
+                    </div>
+
+                    <!-- Application Details Breakdown -->
+                    <div class="p-6 rounded-xl bg-gray-950/60 border border-gray-900 space-y-4 text-xs">
+                        <div class="flex items-center justify-between border-b border-gray-900 pb-3">
+                            <span class="text-gray-400 font-semibold uppercase tracking-wider">Submitted Details</span>
+                            <span class="font-mono text-indigo-400 font-bold" th:text="'App ID: #' + ${myApplication.id != null ? #numbers.formatInteger(myApplication.id, 5) : '00000'}">App ID: #00001</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div>
+                                <span class="block text-gray-500">Applicant Name</span>
+                                <span class="text-white font-medium" th:text="${myApplication.riderName}">John Doe</span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-500">Submission Date</span>
+                                <span class="text-white font-mono" th:text="${myApplication.submittedTime != null ? #temporals.format(myApplication.submittedTime, 'dd MMM yyyy, HH:mm') : 'Recently Submitted'}">24 Oct 2026, 22:30</span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-500">Vehicle Model</span>
+                                <span class="text-white font-medium" th:text="${myApplication.vehicleModel}">Toyota Prius</span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-500">Vehicle Type</span>
+                                <span class="text-white font-medium capitalize" th:text="${myApplication.vehicleType}">Car</span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-500">Vehicle Number (Machine ID)</span>
+                                <span class="text-indigo-400 font-mono font-bold" th:text="${myApplication.vehicleId}">MH 12 AB 1234</span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-500">Driving License Number (Personal ID)</span>
+                                <span class="text-emerald-400 font-mono font-bold" th:text="${myApplication.licenseNumber}">MH 12 20150074321</span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-500">Registered Phone</span>
+                                <span class="text-white font-mono" th:text="${myApplication.phoneNumber}">+919876543210</span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-500">Operating Region</span>
+                                <span class="text-white font-medium" th:text="${myApplication.state} + ' - ' + ${myApplication.district}">Maharashtra - Mumbai</span>
+                            </div>
+                        </div>
+
+                        <!-- Verification Documents Badges -->
+                        <div class="border-t border-gray-900 pt-3">
+                            <span class="block text-gray-500 mb-2">Submitted Verification Documents</span>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-gray-900 text-gray-300 border border-gray-800 text-[11px]">
+                                    <i class="fa-solid fa-file-circle-check text-emerald-400"></i>
+                                    <span>Driving License</span>
+                                </span>
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-gray-900 text-gray-300 border border-gray-800 text-[11px]">
+                                    <i class="fa-solid fa-file-circle-check text-emerald-400"></i>
+                                    <span th:text="${myApplication.identityDocType != null ? myApplication.identityDocType : 'Proof of Identity'}">Aadhar Card</span>
+                                </span>
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-gray-900 text-gray-300 border border-gray-800 text-[11px]">
+                                    <i class="fa-solid fa-images text-indigo-400"></i>
+                                    <span>Vehicle Photos</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Informational Banner -->
+                    <div class="p-4 rounded-xl bg-indigo-950/30 border border-indigo-500/20 text-xs text-indigo-300 flex items-start gap-3">
+                        <i class="fa-solid fa-circle-info text-indigo-400 text-base mt-0.5 shrink-0"></i>
+                        <div>
+                            <span class="font-semibold block mb-0.5">Wait for Approval</span>
+                            <span>We have sent a confirmation email to your account. As soon as the administrator verifies your documents, your driver privileges will be activated automatically.</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-2">
+                        <a th:href="@{/rider/dashboard}" 
+                           class="w-full block py-3.5 rounded-lg bg-gray-900 hover:bg-gray-800 border border-gray-800 text-white font-semibold text-sm transition text-center shadow-md">
+                            <i class="fa-solid fa-arrow-left mr-2"></i> Return to Rider Dashboard
+                        </a>
+                    </div>
+                </div>
+
+                <!-- VIEW 2: Application Approved -->
+                <div th:if="${myApplication != null && myApplication.status == 'APPROVED'}" class="glass-card p-4 sm:p-6 lg:p-8 rounded-2xl shadow-2xl space-y-6 text-center">
+                    <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-3xl mx-auto shadow-lg shadow-emerald-500/10">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div class="space-y-2">
+                        <span class="inline-block px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider bg-emerald-950/60 text-emerald-400 border border-emerald-500/30">
+                            Approved &amp; Active
+                        </span>
+                        <h2 class="text-2xl font-bold text-white">Application Approved!</h2>
+                        <p class="text-sm text-gray-400 max-w-md mx-auto">
+                            Congratulations! Your driver application has been approved. You can now accept rides and manage driving requests from your driver terminal.
+                        </p>
+                    </div>
+                    <div class="pt-4">
+                        <a th:href="@{/driver/dashboard}" 
+                           class="inline-block px-8 py-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition shadow-lg">
+                            <i class="fa-solid fa-car-side mr-2"></i> Open Driver Terminal
+                        </a>
+                    </div>
+                </div>
+
+                <!-- VIEW 3: Standard Application Form (when no pending application or rejected) -->
+                <div th:if="${myApplication == null || myApplication.status == 'REJECTED'}" class="glass-card p-4 sm:p-6 lg:p-8 rounded-2xl shadow-2xl space-y-6">
+                    <div th:if="${myApplication != null && myApplication.status == 'REJECTED'}" class="p-4 rounded-xl bg-rose-950/50 border border-rose-500/30 text-rose-400 text-xs shadow-lg">
+                        <span class="font-semibold block mb-0.5">Previous Application Not Approved</span>
+                        <span>Your prior application was reviewed and rejected. You may review your documents and submit a fresh application below.</span>
+                    </div>
+
                     <div class="flex items-center space-x-4 border-b border-gray-950 pb-4">
                         <div class="w-10 h-10 rounded-lg bg-indigo-600/20 flex items-center justify-center text-indigo-400 text-lg"><i class="fa-solid fa-id-card"></i></div>
                         <div>
@@ -51,39 +178,53 @@
                         </div>
                     </div>
 
-                    <form th:action="@{/rider/become-driver}" method="POST" enctype="multipart/form-data" onsubmit="return showNotImplementedModal(event)" class="space-y-6">
-                        <div>
-                            <label class="text-xs text-gray-400 block mb-1">Vehicle Model & Manufacturer</label>
-                            <input type="text" name="vehicleModel" required placeholder="e.g. Toyota Prius 2022"
-                                   class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-3.5 text-white text-sm focus:outline-none transition">
-                        </div>
+                    <form th:action="@{/rider/become-driver}" method="POST" enctype="multipart/form-data" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="text-xs text-gray-400 block mb-1">Vehicle Model &amp; Manufacturer</label>
+                                <input type="text" name="vehicleModel" required placeholder="e.g. Toyota Prius 2022"
+                                       class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-3.5 text-white text-sm focus:outline-none transition">
+                            </div>
 
-                        <div>
-                            <label class="text-xs text-gray-400 block mb-1">Vehicle Numeric ID / Code</label>
-                            <input type="text" name="vehicleId" required placeholder="e.g. 98112"
-                                   class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-3.5 text-white text-sm focus:outline-none transition">
-                        </div>
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="text-xs text-gray-400">Vehicle Number</label>
+                                    <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Machine ID</span>
+                                </div>
+                                <input type="text" id="vehicle-id-input" name="vehicleId" required placeholder="MH 12 AB 1234"
+                                       autocomplete="off" maxlength="16"
+                                       class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-3.5 text-white text-sm font-mono tracking-wider focus:outline-none transition uppercase">
+                                <p class="text-[11px] text-gray-400 mt-1.5 flex items-center gap-1.5">
+                                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                                    <span>Format: <strong class="text-white font-mono">MH 12 AB 1234</strong></span>
+                                </p>
+                            </div>
 
-                        <div>
-                            <label class="text-xs text-gray-400 block mb-1">Vehicle Type</label>
-                            <select name="vehicleType" required class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-3.5 text-white text-sm focus:outline-none transition">
-                                <option value="">Select vehicle type...</option>
-                                <option value="car">Car</option>
-                                <option value="6 seater van">6 Seater Van</option>
-                                <option value="8 seater van">8 Seater Van</option>
-                                <option value="bike">Bike</option>
-                                <option value="scooter">Scooter</option>
-                                <option value="rickshaw">Rickshaw</option>
-                            </select>
-                        </div>
+                            <div>
+                                <label class="text-xs text-gray-400 block mb-1">Vehicle Type</label>
+                                <select name="vehicleType" required class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-3.5 text-white text-sm focus:outline-none transition">
+                                    <option value="">Select vehicle type...</option>
+                                    <option value="car">Car</option>
+                                    <option value="6 seater van">6 Seater Van</option>
+                                    <option value="8 seater van">8 Seater Van</option>
+                                    <option value="bike">Bike</option>
+                                    <option value="scooter">Scooter</option>
+                                    <option value="rickshaw">Rickshaw</option>
+                                </select>
+                            </div>
 
-                        <div>
-                            <label class="text-xs text-gray-400 block mb-1">Phone Number</label>
-                            <input type="tel" name="phoneNumber" required placeholder="e.g. +919876543210"
-                                   class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-3.5 text-white text-sm focus:outline-none transition">
-                        </div>
+                            <div>
+                                <label class="text-xs text-gray-400 block mb-1">
+                                    Phone Number <span class="text-rose-400">*</span>
+                                </label>
+                                <input type="tel" name="phoneNumber" th:value="${currentUser.phoneNumber}" required placeholder="e.g. +919876543210"
+                                       class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-3.5 text-white text-sm font-mono focus:outline-none transition">
+                                <p class="text-[11px] text-gray-400 mt-1">
+                                    Must match your registered mobile number: 
+                                    <span class="font-mono text-indigo-400 font-bold" th:text="${currentUser.phoneNumber != null ? currentUser.phoneNumber : 'Please add in profile first'}"></span>
+                                </p>
+                            </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="text-xs text-gray-400 block mb-1">State</label>
                                 <select id="state-select" name="state" required
@@ -94,6 +235,7 @@
                                     <option value="Delhi">Delhi</option>
                                 </select>
                             </div>
+
                             <div>
                                 <label class="text-xs text-gray-400 block mb-1">District</label>
                                 <select id="district-select" name="district" required
@@ -101,31 +243,30 @@
                                     <option value="">Select District...</option>
                                 </select>
                             </div>
-                        </div>
 
-                        <div>
-                            <label class="text-xs text-gray-400 block mb-1">Driver License Number</label>
-                            <input type="text" name="licenseNumber" required placeholder="e.g. DL-981122-MH"
-                                   class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-3.5 text-white text-sm focus:outline-none transition">
-                        </div>
-
-                        <div>
-                            <label class="text-xs text-gray-400 block mb-1">Vehicle Photos (PNG/JPG/JPEG, Multiple allowed)</label>
-                            <input type="file" id="vehicle-photos-input" name="vehiclePhotos" required multiple accept="image/png, image/jpeg, image/jpg"
-                                   class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-3 text-white text-sm focus:outline-none transition file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500">
-                            <div id="vehicle-photos-preview" class="grid grid-cols-3 md:grid-cols-4 gap-3 mt-2"></div>
-                        </div>
-
-                        <div>
-                            <label class="text-xs text-gray-400 block mb-1">Driver's License Document (PNG/JPG/JPEG)</label>
-                            <input type="file" id="license-photo-input" name="licensePhoto" required accept="image/png, image/jpeg, image/jpg"
-                                   class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-3 text-white text-sm focus:outline-none transition file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500">
-                            <div id="license-photo-preview" class="mt-2 hidden">
-                                <img src="" alt="License Preview" class="max-h-32 rounded-lg border border-gray-800 object-cover shadow">
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="text-xs text-gray-400">Driving License Number</label>
+                                    <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Personal ID</span>
+                                </div>
+                                <input type="text" id="license-number-input" name="licenseNumber" required placeholder="MH 12 20150074321"
+                                       autocomplete="off" maxlength="20"
+                                       class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-3.5 text-white text-sm font-mono tracking-wider focus:outline-none transition uppercase">
+                                <p class="text-[11px] text-gray-400 mt-1.5 flex items-center gap-1.5">
+                                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                    <span>Format: <strong class="text-white font-mono">MH 12 20150074321</strong></span>
+                                </p>
                             </div>
-                        </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs text-gray-400 block mb-1">Driver's License Document (PNG/JPG/JPEG)</label>
+                                <input type="file" id="license-photo-input" name="licensePhoto" required accept="image/png, image/jpeg, image/jpg"
+                                       class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-3 text-white text-sm focus:outline-none transition file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500">
+                                <div id="license-photo-preview" class="mt-2 hidden">
+                                    <img src="" alt="License Preview" class="max-h-32 rounded-lg border border-gray-800 object-cover shadow">
+                                </div>
+                            </div>
+
                             <div>
                                 <label class="text-xs text-gray-400 block mb-1">Identity Document Type</label>
                                 <select name="identityDocType" required
@@ -134,18 +275,26 @@
                                     <option value="PAN Card">PAN Card</option>
                                 </select>
                             </div>
+
                             <div>
-                                <label class="text-xs text-gray-400 block mb-1">Proof of Identity (PNG/JPG/JPEG)</label>
+                                <label class="text-xs text-gray-400 block mb-1">Proof of Identity Document (PNG/JPG/JPEG)</label>
                                 <input type="file" id="identity-photo-input" name="identityPhoto" required accept="image/png, image/jpeg, image/jpg"
                                        class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-3 text-white text-sm focus:outline-none transition file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500">
                                 <div id="identity-photo-preview" class="mt-2 hidden">
                                     <img src="" alt="Identity Preview" class="max-h-32 rounded-lg border border-gray-800 object-cover shadow">
                                 </div>
                             </div>
+
+                            <div class="md:col-span-2">
+                                <label class="text-xs text-gray-400 block mb-1">Vehicle Photos (PNG/JPG/JPEG, Multiple allowed)</label>
+                                <input type="file" id="vehicle-photos-input" name="vehiclePhotos" required multiple accept="image/png, image/jpeg, image/jpg"
+                                       class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-3 text-white text-sm focus:outline-none transition file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500">
+                                <div id="vehicle-photos-preview" class="grid grid-cols-3 md:grid-cols-6 gap-3 mt-2"></div>
+                            </div>
                         </div>
 
                         <button type="submit"
-                                class="w-full py-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition shadow-lg">
+                                class="w-full py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-base transition shadow-lg hover:scale-[1.005]">
                             Request to become a Driver
                         </button>
                     </form>
@@ -168,56 +317,59 @@
         const stateSelect = document.getElementById('state-select');
         const districtSelect = document.getElementById('district-select');
 
-        // Fetch all states and districts dynamically from GitHub raw JSON file
-        fetch('https://raw.githubusercontent.com/sab99r/Indian-States-And-Districts/master/states-and-districts.json')
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.states) {
+        if (stateSelect && districtSelect) {
+            // Fetch all states and districts dynamically from GitHub raw JSON file
+            fetch('https://raw.githubusercontent.com/sab99r/Indian-States-And-Districts/master/states-and-districts.json')
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.states) {
+                        stateSelect.innerHTML = '<option value="">Select State...</option>';
+                        data.states.forEach(item => {
+                            stateDistrictsMap[item.state] = item.districts;
+                            const option = document.createElement('option');
+                            option.value = item.state;
+                            option.textContent = item.state;
+                            stateSelect.appendChild(option);
+                        });
+                    }
+                })
+                .catch(err => {
+                    console.error("Failed to fetch states/districts API:", err);
+                    // Fallback to local subset if fetch fails
+                    stateDistrictsMap = {
+                        "Maharashtra": ["Mumbai", "Thane", "Palghar", "Pune", "Nashik"],
+                        "Karnataka": ["Bengaluru Urban", "Bengaluru Rural", "Kolar", "Tumakuru"],
+                        "Delhi": ["New Delhi", "South Delhi", "Central Delhi"]
+                    };
                     stateSelect.innerHTML = '<option value="">Select State...</option>';
-                    data.states.forEach(item => {
-                        stateDistrictsMap[item.state] = item.districts;
+                    Object.keys(stateDistrictsMap).forEach(state => {
                         const option = document.createElement('option');
-                        option.value = item.state;
-                        option.textContent = item.state;
+                        option.value = state;
+                        option.textContent = state;
                         stateSelect.appendChild(option);
                     });
-                }
-            })
-            .catch(err => {
-                console.error("Failed to fetch states/districts API:", err);
-                // Fallback to local subset if fetch fails
-                stateDistrictsMap = {
-                    "Maharashtra": ["Mumbai", "Thane", "Palghar", "Pune", "Nashik"],
-                    "Karnataka": ["Bengaluru Urban", "Bengaluru Rural", "Kolar", "Tumakuru"],
-                    "Delhi": ["New Delhi", "South Delhi", "Central Delhi"]
-                };
-                stateSelect.innerHTML = '<option value="">Select State...</option>';
-                Object.keys(stateDistrictsMap).forEach(state => {
-                    const option = document.createElement('option');
-                    option.value = state;
-                    option.textContent = state;
-                    stateSelect.appendChild(option);
                 });
-            });
 
-        stateSelect.addEventListener('change', function() {
-            const selectedState = stateSelect.value;
-            districtSelect.innerHTML = '<option value="">Select District...</option>';
-            
-            if (selectedState && stateDistrictsMap[selectedState]) {
-                stateDistrictsMap[selectedState].forEach(district => {
-                    const option = document.createElement('option');
-                    option.value = district;
-                    option.textContent = district;
-                    districtSelect.appendChild(option);
-                });
-            }
-        });
+            stateSelect.addEventListener('change', function() {
+                const selectedState = stateSelect.value;
+                districtSelect.innerHTML = '<option value="">Select District...</option>';
+                
+                if (selectedState && stateDistrictsMap[selectedState]) {
+                    stateDistrictsMap[selectedState].forEach(district => {
+                        const option = document.createElement('option');
+                        option.value = district;
+                        option.textContent = district;
+                        districtSelect.appendChild(option);
+                    });
+                }
+            });
+        }
 
         // 3. Dynamic image preview controllers
         function setupSingleImagePreview(inputId, previewContainerId) {
             const input = document.getElementById(inputId);
             const container = document.getElementById(previewContainerId);
+            if (!input || !container) return;
             const img = container.querySelector('img');
 
             input.addEventListener('change', function() {
@@ -242,26 +394,95 @@
         const vehicleInput = document.getElementById('vehicle-photos-input');
         const vehiclePreview = document.getElementById('vehicle-photos-preview');
 
-        vehicleInput.addEventListener('change', function() {
-            vehiclePreview.innerHTML = '';
-            const files = Array.from(vehicleInput.files);
-            
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const imgDiv = document.createElement('div');
-                    imgDiv.className = 'relative border border-gray-800 rounded-lg overflow-hidden shadow';
-                    
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.className = 'w-full h-24 object-cover';
-                    
-                    imgDiv.appendChild(img);
-                    vehiclePreview.appendChild(imgDiv);
-                };
-                reader.readAsDataURL(file);
+        if (vehicleInput && vehiclePreview) {
+            vehicleInput.addEventListener('change', function() {
+                vehiclePreview.innerHTML = '';
+                const files = Array.from(vehicleInput.files);
+                
+                files.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const imgDiv = document.createElement('div');
+                        imgDiv.className = 'relative border border-gray-800 rounded-lg overflow-hidden shadow';
+                        
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'w-full h-24 object-cover';
+                        
+                        imgDiv.appendChild(img);
+                        vehiclePreview.appendChild(imgDiv);
+                    };
+                    reader.readAsDataURL(file);
+                });
             });
-        });
+        }
+
+        // 4. Live Formatting for Vehicle Number (MH 12 AB 1234 / 22 BH 1234 AA)
+        const vehiclePlateInput = document.getElementById('vehicle-id-input');
+        if (vehiclePlateInput) {
+            vehiclePlateInput.addEventListener('input', function() {
+                const hadTrailingSpace = this.value.endsWith(' ');
+                let raw = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+                let formatted = '';
+                if (/^[0-9]/.test(raw)) {
+                    // Bharat (BH) series: e.g. 22 BH 1234 AA
+                    const p1 = raw.substring(0, 2);
+                    let rest = raw.substring(2);
+                    const p2 = rest.match(/^[A-Z]{1,2}/)?.[0] || '';
+                    rest = rest.substring(p2.length);
+                    const p3 = rest.match(/^[0-9]{1,4}/)?.[0] || '';
+                    rest = rest.substring(p3.length);
+                    const p4 = rest.match(/^[A-Z]{1,2}/)?.[0] || '';
+                    formatted = [p1, p2, p3, p4].filter(Boolean).join(' ');
+                    if (hadTrailingSpace && ((p1.length === 2 && !p2) || (p2.length === 2 && !p3) || (p3.length === 4 && !p4))) {
+                        formatted += ' ';
+                    }
+                } else {
+                    // Standard State plate: e.g. MH 12 AB 1234
+                    const p1 = raw.match(/^[A-Z]{1,2}/)?.[0] || '';
+                    let rest = raw.substring(p1.length);
+                    const p2 = rest.match(/^[0-9]{1,2}/)?.[0] || '';
+                    rest = rest.substring(p2.length);
+                    const p3 = rest.match(/^[A-Z]{1,3}/)?.[0] || '';
+                    rest = rest.substring(p3.length);
+                    const p4 = rest.match(/^[0-9]{1,4}/)?.[0] || '';
+                    formatted = [p1, p2, p3, p4].filter(Boolean).join(' ');
+                    if (hadTrailingSpace && ((p1.length === 2 && !p2) || (p2.length >= 1 && !p3) || (p3.length >= 1 && !p4))) {
+                        formatted += ' ';
+                    }
+                }
+
+                this.value = formatted;
+            });
+        }
+
+        // 5. Live Formatting for Driving License Number (MH 12 20150074321)
+        const dlInput = document.getElementById('license-number-input');
+        if (dlInput) {
+            dlInput.addEventListener('input', function() {
+                const hadTrailingSpace = this.value.endsWith(' ');
+                let raw = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+                // Part 1: State code (2 letters)
+                const p1 = raw.match(/^[A-Z]{1,2}/)?.[0] || '';
+                let rest = raw.substring(p1.length);
+
+                // Part 2: RTO code (2 digits)
+                const p2 = rest.match(/^[0-9]{1,2}/)?.[0] || '';
+                rest = rest.substring(p2.length);
+
+                // Part 3: Year (4 digits) + Unique serial (7 digits) = up to 11 digits
+                const p3 = rest.match(/^[0-9]{1,11}/)?.[0] || '';
+
+                let formatted = [p1, p2, p3].filter(Boolean).join(' ');
+                if (hadTrailingSpace && ((p1.length === 2 && !p2) || (p2.length === 2 && !p3))) {
+                    formatted += ' ';
+                }
+
+                this.value = formatted;
+            });
+        }
     </script>
 </body>
 </html>

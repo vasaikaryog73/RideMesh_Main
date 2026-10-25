@@ -26,6 +26,9 @@ public class AdminSeeder implements CommandLineRunner {
             admin.setName("System Admin");
             admin.setEmail("admin@ridemesh.com");
             admin.setPassword(passwordEncoder.encode("AdminPass123"));
+            admin.setUsername("admin#00001");
+            admin.setProfilePictureUrl("https://res.cloudinary.com/domckasfk/image/upload/v1774786542/mediscan/reports/ygnjdwtvacvw6rrzmumc.jpg");
+            admin.setAuthProvider(com.project.ridemesh.entities.enums.AuthProvider.EMAIL);
             admin.setRoles(Set.of(Roles.ADMIN));
             admin.setEmailVerified(true);
             userRepository.save(admin);

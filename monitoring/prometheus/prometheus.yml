@@ -1,0 +1,39 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: 'eureka-server'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['eureka-server:8761']
+
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['apigateway:8089']
+
+  - job_name: 'user-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['user-service:8081']
+
+  - job_name: 'ride-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['ride-service:8082']
+
+  - job_name: 'wallet-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['wallet-service:8083']
+
+  - job_name: 'notify-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['notify-service:8084']
+
+  - job_name: 'thymeleaf-ui'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['thymeleaf-ui:8085']

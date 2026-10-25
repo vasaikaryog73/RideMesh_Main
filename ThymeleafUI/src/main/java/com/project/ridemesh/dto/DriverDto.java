@@ -15,6 +15,7 @@ public class DriverDto {
     private String vehiclePhotos;
     private String identityPhotoUrl;
     private String identityDocType;
+    private Long reportsCount = 0L;
 
     public DriverDto() {
     }
@@ -141,5 +142,13 @@ public class DriverDto {
 
     public void setIdentityDocType(String identityDocType) {
         this.identityDocType = identityDocType;
+    }
+
+    public Long getReportsCount() {
+        return reportsCount;
+    }
+
+    public void setReportsCount(Long reportsCount) {
+        this.reportsCount = reportsCount;
     }
 }

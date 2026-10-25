@@ -21,8 +21,15 @@ public class RideDto {
     private String vehicleType;
     private Boolean riderCompleted;
     private Boolean driverCompleted;
+    private Boolean cashPaid;
+    private Boolean cashReceived;
     private String pickupState;
     private String pickupDistrict;
+    private String dropoffState;
+    private String dropoffDistrict;
+    private String pickupAddress;
+    private String dropoffAddress;
+    private Double driverRating;
 
     public RideDto() {
     }
@@ -194,5 +201,61 @@ public class RideDto {
 
     public void setPickupDistrict(String pickupDistrict) {
         this.pickupDistrict = pickupDistrict;
+    }
+
+    public Boolean getCashPaid() {
+        return cashPaid;
+    }
+
+    public void setCashPaid(Boolean cashPaid) {
+        this.cashPaid = cashPaid;
+    }
+
+    public Boolean getCashReceived() {
+        return cashReceived;
+    }
+
+    public void setCashReceived(Boolean cashReceived) {
+        this.cashReceived = cashReceived;
+    }
+
+    public String getDropoffState() {
+        return dropoffState;
+    }
+
+    public void setDropoffState(String dropoffState) {
+        this.dropoffState = dropoffState;
+    }
+
+    public String getDropoffDistrict() {
+        return dropoffDistrict;
+    }
+
+    public void setDropoffDistrict(String dropoffDistrict) {
+        this.dropoffDistrict = dropoffDistrict;
+    }
+
+    public String getPickupAddress() {
+        return pickupAddress;
+    }
+
+    public void setPickupAddress(String pickupAddress) {
+        this.pickupAddress = pickupAddress;
+    }
+
+    public String getDropoffAddress() {
+        return dropoffAddress;
+    }
+
+    public void setDropoffAddress(String dropoffAddress) {
+        this.dropoffAddress = dropoffAddress;
+    }
+
+    public Double getDriverRating() {
+        return driverRating;
+    }
+
+    public void setDriverRating(Double driverRating) {
+        this.driverRating = driverRating;
     }
 }
