@@ -30,7 +30,3 @@ Thumbs.db
 *.jar
 *.war
 *.ear
-
-# Documentation / local files (ignored from git)
-Documents/
-Documents/**
