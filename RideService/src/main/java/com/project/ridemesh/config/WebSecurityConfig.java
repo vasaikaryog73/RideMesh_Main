@@ -19,7 +19,8 @@ public class WebSecurityConfig {
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
-            "/actuator/**"
+            "/actuator/**",
+            "/api/bookings/**"
     };
 
     private final HeaderAuthFilter headerAuthFilter;

@@ -9,4 +9,6 @@ public interface AuthService {
     LoginResponseDto refreshToken(String refreshToken);
     void sendVerificationEmail(Long userId);
     void verifyEmail(String token);
+    String[] loginOrSignupWithGoogle(GoogleAuthDto googleAuthDto);
+    boolean checkUsernameExists(String username);
 }

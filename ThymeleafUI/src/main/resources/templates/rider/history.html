@@ -9,8 +9,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            background-color: #0b0f19;
-            color: #f3f4f6;
+            background-color: var(--color-bg, #ffffff);
+            color: var(--color-text, #0f172a);
             font-family: 'Inter', sans-serif;
         }
         .glass-card {
@@ -19,24 +19,35 @@
             border: 1px solid rgba(255, 255, 255, 0.06);
         }
     </style>
+    <!-- Include Theme Styles in head for instant theme rendering without flicker -->
+    <th:block th:replace="~{fragments/navigation :: themeStyles}"></th:block>
 </head>
-<body class="min-h-screen flex">
+<body class="min-h-screen flex flex-col lg:flex-row w-full overflow-x-hidden">
 
     <!-- Sidebar fragment injection -->
     <div th:replace="~{fragments/navigation :: sidebar('history', ${currentUser})}"></div>
 
-    <div class="flex-grow flex flex-col min-h-screen">
+    <div class="flex-1 flex flex-col min-h-screen w-full min-w-0">
         <!-- Top Navbar fragment injection -->
         <header th:replace="~{fragments/navigation :: navbar(${currentUser})}"></header>
 
-        <main class="flex-grow p-8 space-y-6 relative overflow-hidden">
+        <main class="flex-grow p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 relative overflow-hidden">
             <div class="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600 rounded-full filter blur-3xl opacity-10 animate-pulse"></div>
 
-            <!-- Header Panel -->
-            <div class="flex justify-between items-center relative z-10">
+            <!-- Header Panel & Search -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
                 <div>
                     <h2 class="text-2xl font-bold text-white">Ride History</h2>
                     <p class="text-xs text-gray-400">Review all your previous trips, receipts, and driver ratings.</p>
+                </div>
+                <!-- Search Bar -->
+                <div class="w-full sm:w-80 relative">
+                    <input type="text" id="searchHistoryInput" onkeyup="filterHistory()"
+                           placeholder="Search by ID, driver, address..."
+                           class="w-full bg-gray-900/80 border border-gray-800 focus:border-indigo-500 rounded-xl px-4 py-2 text-xs text-white placeholder-gray-500 focus:outline-none transition shadow-inner">
+                    <span class="absolute right-3 top-2.5 text-xs text-gray-500">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
                 </div>
             </div>
 
@@ -53,73 +64,120 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm text-gray-300">
                         <thead>
-                            <tr class="text-xs font-semibold uppercase tracking-wider border-b border-gray-800">
-                                <th class="px-6 py-4 rounded-l-xl">Ride ID</th>
-                                <th class="px-6 py-4">Date</th>
-                                <th class="px-6 py-4">Driver</th>
-                                <th class="px-6 py-4">Status</th>
-                                <th class="px-6 py-4">Payment</th>
-                                <th class="px-6 py-4 text-right">Fare</th>
-                                <th class="px-6 py-4 text-center rounded-r-xl">Actions</th>
+                            <tr class="text-xs text-gray-500 border-b border-gray-900 uppercase">
+                                <th class="pb-3">Ride ID</th>
+                                <th class="pb-3">Date</th>
+                                <th class="pb-3">Driver</th>
+                                <th class="pb-3">Pickup</th>
+                                <th class="pb-3">Destination</th>
+                                <th class="pb-3">Status</th>
+                                <th class="pb-3">Payment</th>
+                                <th class="pb-3 text-right">Fare</th>
+                                <th class="pb-3 text-center">Actions</th>
+                                <th class="pb-3 text-center">Report</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-900">
+                        <tbody id="historyTableBody" class="divide-y divide-gray-900">
                             <!-- Empty State -->
                             <tr th:if="${#lists.isEmpty(ridesPage.content)}">
-                                <td colspan="7" class="py-12 px-6 text-center text-gray-500 text-xs">No rides requested yet. Go to 'Book a Ride' to start!</td>
+                                <td colspan="10" class="py-8 text-center text-gray-500 text-xs">No rides requested yet. Go to 'Book a Ride' to start!</td>
                             </tr>
                             <!-- Ride Rows -->
-                            <tr th:each="ride : ${ridesPage.content}" class="hover:bg-gray-900/30 transition">
-                                <td class="px-6 py-4 font-mono text-xs text-indigo-400" th:text="${ride.id}">#1001</td>
-                                <td class="px-6 py-4 text-xs" th:text="${#temporals.format(ride.createdTime, 'yyyy-MM-dd HH:mm')}">2026-08-09 12:00</td>
-                                <td class="px-6 py-4 text-xs font-semibold text-white">
+                            <tr th:each="ride : ${ridesPage.content}" class="ride-row hover:bg-gray-900/30 transition">
+                                <td class="ride-id-cell py-4 font-mono text-xs text-indigo-400" th:text="${ride.id != null ? #numbers.formatInteger(ride.id, 5) : '00000'}">01001</td>
+                                <td class="py-4 text-xs" th:text="${#temporals.format(ride.createdTime, 'yyyy-MM-dd HH:mm')}">2026-08-09 12:00</td>
+                                <td class="driver-name-cell py-4 text-xs font-semibold text-white">
                                     <span th:if="${ride.driver != null}" th:text="${ride.driver.user.name}">John Doe</span>
                                     <span th:unless="${ride.driver != null}" class="text-gray-500 italic">Unassigned</span>
                                 </td>
-                                <td class="px-6 py-4 text-xs">
-                                    <span th:if="${ride.status.name() == 'ENDED'}" class="px-2.5 py-1 rounded bg-emerald-950/50 text-emerald-400 border border-emerald-500/20 font-semibold uppercase text-[10px]">
+                                <!-- Pickup Column (Full address, truncated view, double click to edit/copy entire address) -->
+                                <td class="address-cell pickup-cell py-4 text-xs text-slate-300 max-w-[150px] relative cursor-pointer select-none"
+                                    title="Double click to view and copy full address"
+                                    ondblclick="makeAddressEditable(this)"
+                                    th:data-full-address="${ride.pickupAddress != null and !#strings.isEmpty(ride.pickupAddress) ? ride.pickupAddress : (ride.pickupDistrict != null ? (ride.pickupDistrict + (ride.pickupState != null ? ', ' + ride.pickupState : '')) : (ride.pickUpLocation != null and ride.pickUpLocation.coordinates != null ? (ride.pickUpLocation.coordinates[1] + ', ' + ride.pickUpLocation.coordinates[0]) : 'Pickup'))}">
+                                    <span class="address-display block truncate" 
+                                          th:text="${ride.pickupAddress != null and !#strings.isEmpty(ride.pickupAddress) ? ride.pickupAddress : (ride.pickupDistrict != null ? (ride.pickupDistrict + (ride.pickupState != null ? ', ' + ride.pickupState : '')) : 'Pickup')}">Pickup</span>
+                                    <input type="text" class="address-input hidden w-full bg-gray-900 border border-orange-500 rounded px-2 py-1 text-xs text-white shadow-lg focus:outline-none"
+                                           onblur="revertAddress(this)" onkeydown="handleAddressKey(event, this)">
+                                </td>
+                                <!-- Destination Column (Full address, truncated view, double click to edit/copy entire address) -->
+                                <td class="address-cell dropoff-cell py-4 text-xs text-slate-300 max-w-[150px] relative cursor-pointer select-none"
+                                    title="Double click to view and copy full address"
+                                    ondblclick="makeAddressEditable(this)"
+                                    th:data-full-address="${ride.dropoffAddress != null and !#strings.isEmpty(ride.dropoffAddress) ? ride.dropoffAddress : (ride.dropoffDistrict != null ? (ride.dropoffDistrict + (ride.dropoffState != null ? ', ' + ride.dropoffState : '')) : (ride.dropOffLocation != null and ride.dropOffLocation.coordinates != null ? (ride.dropOffLocation.coordinates[1] + ', ' + ride.dropOffLocation.coordinates[0]) : 'Destination'))}">
+                                    <span class="address-display block truncate"
+                                          th:text="${ride.dropoffAddress != null and !#strings.isEmpty(ride.dropoffAddress) ? ride.dropoffAddress : (ride.dropoffDistrict != null ? (ride.dropoffDistrict + (ride.dropoffState != null ? ', ' + ride.dropoffState : '')) : 'Destination')}">Destination</span>
+                                    <input type="text" class="address-input hidden w-full bg-gray-900 border border-orange-500 rounded px-2 py-1 text-xs text-white shadow-lg focus:outline-none"
+                                           onblur="revertAddress(this)" onkeydown="handleAddressKey(event, this)">
+                                </td>
+                                <td class="py-4 text-xs">
+                                    <span th:if="${ride.status.name() == 'ENDED' or ride.status.name() == 'COMPLETED' or ride.status.name() == 'PAYMENT_COMPLETED'}" class="px-2 py-0.5 rounded bg-emerald-950/50 text-emerald-400 border border-emerald-500/20 font-semibold uppercase text-[10px]">
                                         Completed
                                     </span>
-                                    <span th:if="${ride.status.name() == 'RIDER_RATED'}" class="px-2.5 py-1 rounded bg-emerald-950/50 text-emerald-400 border border-emerald-500/20 font-semibold uppercase text-[10px]">
+                                    <span th:if="${ride.status.name() == 'RIDER_RATED'}" class="px-2 py-0.5 rounded bg-emerald-950/50 text-emerald-400 border border-emerald-500/20 font-semibold uppercase text-[10px]">
                                         Rated
                                     </span>
-                                    <span th:if="${ride.status.name() == 'CANCELLED'}" class="px-2.5 py-1 rounded bg-rose-950/50 text-rose-400 border border-rose-500/20 font-semibold uppercase text-[10px]">
+                                    <span th:if="${ride.status.name() == 'CANCELLED'}" class="px-2 py-0.5 rounded bg-rose-950/50 text-rose-400 border border-rose-500/20 font-semibold uppercase text-[10px]">
                                         Cancelled
                                     </span>
-                                    <span th:if="${ride.status.name() == 'ONGOING'}" class="px-2.5 py-1 rounded bg-amber-950/50 text-amber-400 border border-amber-500/20 font-semibold uppercase text-[10px]">
-                                        Ongoing
+                                    <span th:if="${ride.status.name() == 'IN_PROGRESS' or ride.status.name() == 'ONGOING'}" class="px-2 py-0.5 rounded bg-orange-950/50 text-orange-400 border border-orange-500/20 font-semibold uppercase text-[10px]">
+                                        In Progress
                                     </span>
-                                    <span th:if="${ride.status.name() == 'CONFIRMED'}" class="px-2.5 py-1 rounded bg-indigo-950/50 text-indigo-400 border border-indigo-500/20 font-semibold uppercase text-[10px]">
-                                        Confirmed
+                                    <span th:if="${ride.status.name() == 'PENDING_CUSTOMER_APPROVAL'}" class="px-2 py-0.5 rounded bg-orange-950/50 text-orange-400 border border-orange-500/20 font-semibold uppercase text-[10px]">
+                                        Pending Approval
+                                    </span>
+                                    <span th:if="${ride.status.name() == 'ACCEPTED' or ride.status.name() == 'CONFIRMED'}" class="px-2 py-0.5 rounded bg-indigo-950/50 text-indigo-400 border border-indigo-500/20 font-semibold uppercase text-[10px]">
+                                        Accepted
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-xs text-gray-400" th:text="${ride.paymentMethod}">WALLET</td>
-                                <td class="px-6 py-4 text-right font-bold text-white" th:text="'₹' + ${#numbers.formatDecimal(ride.fare, 1, 2)}">₹15.00</td>
-                                <td class="px-6 py-4 text-center">
-                                    <!-- Cancel Active Ride (CONFIRMED) -->
-                                    <form th:if="${ride.status.name() == 'CONFIRMED'}" th:action="@{/rider/cancelRide/{rideId}(rideId=${ride.id})}" method="POST" onsubmit="return showNotImplementedModal(event)">
+                                <td class="py-4 text-xs text-gray-400" th:text="${ride.paymentMethod}">WALLET</td>
+                                <td class="py-4 text-right font-bold text-white" th:text="'₹' + ${#numbers.formatDecimal(ride.fare, 1, 2)}">₹15.00</td>
+                                <td class="py-4 text-center">
+                                    <!-- Cancel Active Ride (ACCEPTED or CONFIRMED) -->
+                                    <form th:if="${ride.status.name() == 'ACCEPTED' or ride.status.name() == 'CONFIRMED'}" th:action="@{/rider/cancelRide/{rideId}(rideId=${ride.id})}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this ride?');">
                                         <button type="submit" class="px-2.5 py-1 rounded bg-red-600 hover:bg-red-700 text-white font-semibold text-[10px] transition btn-cancel">
                                             Cancel Ride
                                         </button>
                                     </form>
 
-                                    <!-- Rate Driver (ENDED) -->
-                                    <form th:if="${ride.status.name() == 'ENDED'}" th:action="@{/rider/rateDriver/{rideId}(rideId=${ride.id})}" method="POST" onsubmit="return showNotImplementedModal(event)" class="flex items-center justify-center space-x-2">
-                                        <select name="rating" required class="bg-white border border-slate-200 rounded p-1 text-[10px] text-slate-700 focus:outline-none focus:border-purple-500">
-                                            <option value="5.0">5 Stars</option>
-                                            <option value="4.0">4 Stars</option>
-                                            <option value="3.0">3 Stars</option>
-                                            <option value="2.0">2 Stars</option>
-                                            <option value="1.0">1 Star</option>
+                                    <!-- Rate Driver (ENDED or COMPLETED and not yet rated) -->
+                                    <form th:if="${(ride.status.name() == 'ENDED' or ride.status.name() == 'COMPLETED' or ride.status.name() == 'PAYMENT_COMPLETED') and ride.status.name() != 'RIDER_RATED' and (ride.driverRating == null or ride.driverRating == 0.0)}" 
+                                          th:action="@{/rider/rateDriver/{rideId}(rideId=${ride.id})}" method="POST" class="flex items-center justify-center space-x-2">
+                                        <input type="hidden" name="driverId" th:value="${ride.driver != null ? ride.driver.id : ''}">
+                                        <select name="rating" required class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded p-1 text-[11px] text-slate-700 dark:text-gray-200 focus:outline-none focus:border-orange-500">
+                                            <option value="5.0">⭐ 5 Stars</option>
+                                            <option value="4.0">⭐ 4 Stars</option>
+                                            <option value="3.0">⭐ 3 Stars</option>
+                                            <option value="2.0">⭐ 2 Stars</option>
+                                            <option value="1.0">⭐ 1 Star</option>
                                         </select>
-                                        <button type="submit" class="px-2 py-1 rounded bg-purple-600 hover:bg-purple-500 text-white font-semibold text-[10px] transition">
+                                        <button type="submit" class="px-2.5 py-1 rounded bg-orange-500 hover:bg-orange-600 text-white font-semibold text-[11px] transition shadow-sm">
                                             Rate
                                         </button>
                                     </form>
 
-                                    <!-- Rated Status -->
-                                    <span th:if="${ride.status.name() == 'RIDER_RATED'}" class="text-[10px] text-emerald-600 font-bold"><i class="fa-solid fa-check text-emerald-500 mr-1"></i> Rated</span>
+                                    <!-- Rated Status & Attached Score (Uneditable text with star emojis) -->
+                                    <span th:if="${ride.status.name() == 'RIDER_RATED' or (ride.driverRating != null and ride.driverRating > 0.0)}" 
+                                          class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 font-semibold text-xs select-none shadow-sm">
+                                        <span>⭐</span>
+                                        <span th:text="${ride.driverRating != null and ride.driverRating > 0.0 ? #numbers.formatDecimal(ride.driverRating, 1, 1) + ' Stars' : '5.0 Stars'}">5.0 Stars</span>
+                                        <span class="text-[10px] text-gray-400 font-normal">(Rated)</span>
+                                    </span>
                                     <span th:if="${ride.status.name() == 'CANCELLED' or ride.status.name() == 'ONGOING'}" class="text-[10px] text-gray-500">-</span>
+                                </td>
+                                <!-- Report Column -->
+                                <td class="py-4 text-center">
+                                    <button th:if="${ride.driver != null}"
+                                            type="button"
+                                            th:data-ride-id="${ride.id}"
+                                            th:data-driver-id="${ride.driver.id}"
+                                            th:data-driver-name="${ride.driver.user != null ? ride.driver.user.name : 'Driver'}"
+                                            onclick="openReportModal(this.getAttribute('data-ride-id'), this.getAttribute('data-driver-id'), this.getAttribute('data-driver-name'))"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-semibold text-[11px] transition shadow-sm">
+                                        <i class="fa-solid fa-triangle-exclamation text-[10px]"></i>
+                                        <span>Report</span>
+                                    </button>
+                                    <span th:unless="${ride.driver != null}" class="text-[10px] text-gray-500">-</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -148,7 +206,191 @@
         </footer>
     </div>
 
+    <!-- Report Driver Modal -->
+    <div id="reportDriverModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-card bg-slate-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative text-slate-200">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-800">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-lg bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-500">
+                        <i class="fa-solid fa-triangle-exclamation text-sm"></i>
+                    </span>
+                    <div>
+                        <h3 class="text-base font-bold text-white">Report Driver</h3>
+                        <p class="text-[11px] text-gray-400" id="reportModalSubtitle">Submit safety/conduct report</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeReportModal()" class="text-gray-400 hover:text-white transition text-lg">&times;</button>
+            </div>
+
+            <form id="reportForm" onsubmit="submitReportForm(event)" class="space-y-4">
+                <input type="hidden" id="reportRideId" name="rideId">
+                <input type="hidden" id="reportDriverId" name="driverId">
+
+                <!-- Reason Textarea -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1.5">
+                        Reason for Report <span class="text-rose-400">*</span>
+                    </label>
+                    <textarea id="reportReason" name="reason" rows="3" required
+                              placeholder="Please describe what happened in detail..."
+                              class="w-full bg-gray-950/70 border border-gray-800 focus:border-rose-500 rounded-xl p-3 text-xs text-white focus:outline-none transition resize-none"></textarea>
+                </div>
+
+                <!-- Compulsory Evidence Upload -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1.5">
+                        Compulsory Evidence (Media/Photos) <span class="text-rose-400">*</span>
+                    </label>
+                    <input type="file" id="reportMedia" name="media" required accept="image/*,video/*,.pdf"
+                           class="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-rose-500/10 file:text-rose-400 hover:file:bg-rose-500/20 border border-gray-800 rounded-xl p-1 bg-gray-950/60 cursor-pointer">
+                    <p class="text-[10px] text-gray-400 mt-1">Upload a photo, screenshot, or video as compulsory evidence.</p>
+                </div>
+
+                <div id="reportErrorMsg" class="hidden p-2.5 rounded-lg bg-rose-950/50 border border-rose-500/30 text-rose-400 text-xs text-center"></div>
+
+                <div class="flex items-center justify-end space-x-3 pt-2 border-t border-gray-800">
+                    <button type="button" onclick="closeReportModal()"
+                            class="px-4 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 text-xs font-semibold transition border border-gray-800">
+                        Back
+                    </button>
+                    <button type="submit" id="submitReportBtn"
+                            class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition shadow-md flex items-center gap-1.5">
+                        <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                        <span>Submit Report</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Script triggers -->
     <div th:replace="~{fragments/navigation :: navigationScripts}"></div>
+
+    <script>
+        function openReportModal(rideId, driverId, driverName) {
+            document.getElementById('reportRideId').value = rideId || '';
+            document.getElementById('reportDriverId').value = driverId || '';
+            document.getElementById('reportModalSubtitle').innerText = 'Reporting: ' + (driverName || 'Driver') + ' (Ride #' + rideId + ')';
+            document.getElementById('reportReason').value = '';
+            document.getElementById('reportMedia').value = '';
+            document.getElementById('reportErrorMsg').classList.add('hidden');
+            document.getElementById('reportDriverModal').classList.remove('hidden');
+            checkFormValidity();
+        }
+
+        function closeReportModal() {
+            document.getElementById('reportDriverModal').classList.add('hidden');
+        }
+
+        const reasonInput = document.getElementById('reportReason');
+        const mediaInput = document.getElementById('reportMedia');
+        const submitBtn = document.getElementById('submitReportBtn');
+
+        function checkFormValidity() {
+            const hasReason = reasonInput.value.trim().length > 0;
+            const hasMedia = mediaInput.files && mediaInput.files.length > 0;
+            submitBtn.disabled = !(hasReason && hasMedia);
+        }
+
+        reasonInput.addEventListener('input', checkFormValidity);
+        mediaInput.addEventListener('change', checkFormValidity);
+
+        async function submitReportForm(event) {
+            event.preventDefault();
+            const errorDiv = document.getElementById('reportErrorMsg');
+            errorDiv.classList.add('hidden');
+
+            const hasReason = reasonInput.value.trim().length > 0;
+            const hasMedia = mediaInput.files && mediaInput.files.length > 0;
+            if (!hasReason || !hasMedia) {
+                errorDiv.innerText = 'Both reason and compulsory evidence media are required.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('rideId', document.getElementById('reportRideId').value);
+            formData.append('driverId', document.getElementById('reportDriverId').value);
+            formData.append('reason', reasonInput.value.trim());
+            formData.append('media', mediaInput.files[0]);
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i> <span>Submitting...</span>';
+
+            try {
+                const response = await fetch('/rider/report-driver', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    alert(result.message || 'Your report was recieved, we will look into this matter. thanks for reporting, this helps keep our plaatform safe');
+                    closeReportModal();
+                    window.location.reload();
+                } else {
+                    errorDiv.innerText = result.message || 'Failed to submit report. Please try again.';
+                    errorDiv.classList.remove('hidden');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane text-[10px]"></i> <span>Submit Report</span>';
+                }
+            } catch (err) {
+                errorDiv.innerText = 'Network error: ' + err.message;
+                errorDiv.classList.remove('hidden');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane text-[10px]"></i> <span>Submit Report</span>';
+            }
+        }
+
+        // Inline double-click editable full address logic
+        function makeAddressEditable(cell) {
+            const displaySpan = cell.querySelector('.address-display');
+            const input = cell.querySelector('.address-input');
+            const fullAddress = cell.getAttribute('data-full-address') || '';
+
+            if (displaySpan && input) {
+                input.value = fullAddress;
+                displaySpan.classList.add('hidden');
+                input.classList.remove('hidden');
+                input.focus();
+                input.select();
+            }
+        }
+
+        function revertAddress(input) {
+            const cell = input.closest('.address-cell');
+            if (cell) {
+                const displaySpan = cell.querySelector('.address-display');
+                if (displaySpan) {
+                    input.classList.add('hidden');
+                    displaySpan.classList.remove('hidden');
+                }
+            }
+        }
+
+        function handleAddressKey(event, input) {
+            if (event.key === 'Escape' || event.key === 'Enter') {
+                revertAddress(input);
+            }
+        }
+
+        // Search bar filter logic for Rider History
+        function filterHistory() {
+            const query = (document.getElementById('searchHistoryInput').value || '').trim().toLowerCase();
+            const rows = document.querySelectorAll('#historyTableBody tr.ride-row');
+
+            rows.forEach(row => {
+                const rideId = (row.querySelector('.ride-id-cell')?.textContent || '').toLowerCase();
+                const driverName = (row.querySelector('.driver-name-cell')?.textContent || '').toLowerCase();
+                const pickupAddress = (row.querySelector('.pickup-cell')?.getAttribute('data-full-address') || row.querySelector('.pickup-cell')?.textContent || '').toLowerCase();
+                const dropoffAddress = (row.querySelector('.dropoff-cell')?.getAttribute('data-full-address') || row.querySelector('.dropoff-cell')?.textContent || '').toLowerCase();
+
+                if (!query || rideId.includes(query) || driverName.includes(query) || pickupAddress.includes(query) || dropoffAddress.includes(query)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+    </script>
 </body>
 </html>

@@ -1,13 +1,27 @@
 package com.project.ridemesh.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.project.ridemesh.entities.enums.Roles;
 import java.util.Set;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class UserDto {
     private Long id;
     private String name;
     private String email;
     private Set<Roles> roles;
+    private Boolean emailVerified;
+    private String username;
+    private String profilePictureUrl;
+    private String phoneNumber;
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
 
     public UserDto() {
     }
@@ -49,5 +63,29 @@ public class UserDto {
 
     public void setRoles(Set<Roles> roles) {
         this.roles = roles;
+    }
+
+    public Boolean getEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(Boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getProfilePictureUrl() {
+        return profilePictureUrl;
+    }
+
+    public void setProfilePictureUrl(String profilePictureUrl) {
+        this.profilePictureUrl = profilePictureUrl;
     }
 }

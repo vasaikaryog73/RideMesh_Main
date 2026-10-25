@@ -10,8 +10,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            background-color: #0b0f19;
-            color: #f3f4f6;
+            background-color: var(--color-bg, #ffffff);
+            color: var(--color-text, #0f172a);
             font-family: 'Inter', sans-serif;
         }
 
@@ -21,18 +21,20 @@
             border: 1px solid rgba(255, 255, 255, 0.06);
         }
     </style>
+    <!-- Include Theme Styles in head for instant theme rendering without flicker -->
+    <th:block th:replace="~{fragments/navigation :: themeStyles}"></th:block>
 </head>
 
-<body class="min-h-screen flex">
+<body class="min-h-screen flex flex-col lg:flex-row w-full overflow-x-hidden">
 
     <!-- Sidebar fragment injection -->
     <div th:replace="~{fragments/navigation :: sidebar('wallet', ${currentUser})}"></div>
 
-    <div class="flex-grow flex flex-col min-h-screen">
+    <div class="flex-1 flex flex-col min-h-screen w-full min-w-0">
         <!-- Top Navbar fragment injection -->
         <header th:replace="~{fragments/navigation :: navbar(${currentUser})}"></header>
 
-        <main class="flex-grow p-8 space-y-8 relative overflow-hidden">
+        <main class="flex-grow p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 relative overflow-hidden">
             <div
                 class="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600 rounded-full filter blur-3xl opacity-10 animate-pulse">
             </div>
@@ -47,40 +49,96 @@
                 <span th:text="${errorMessage}">Error message</span>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
                 <!-- Wallet Balance Widget -->
                 <div class="glass-card p-6 rounded-2xl shadow-xl flex flex-col justify-between">
                     <div>
-                        <span class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Available
-                            Balance</span>
-                        <h2 class="text-4xl font-extrabold text-white mt-2 mb-4"
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Available Balance</span>
+                            <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">Active</span>
+                        </div>
+                        <h2 class="text-4xl font-extrabold text-white mt-2 mb-3"
                             th:text="'₹' + ${#numbers.formatDecimal(wallet.balance, 1, 2)}">₹0.00</h2>
-                        <p class="text-xs text-gray-400">Use this balance to book rides instantly without waiting for
-                            gateway authentication loops.</p>
+                        <p class="text-xs text-gray-400 leading-relaxed">Use this balance to book rides instantly without waiting for gateway authentication loops.</p>
+                        
+                        <div class="mt-4 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-xs text-gray-300 flex items-center space-x-2">
+                            <i class="fa-solid fa-shield-halved text-orange-400"></i>
+                            <span>Reserve: <strong class="text-white">₹500.00</strong> must remain in wallet</span>
+                        </div>
                     </div>
-                    <div class="border-t border-gray-900 pt-4 mt-6">
-                        <span class="text-xs text-gray-500 block">Wallet ID</span>
-                        <span class="text-sm font-semibold text-gray-300" th:text="${wallet.id}">12345</span>
+                    <div class="border-t border-gray-900/40 pt-4 mt-6 flex justify-between items-center">
+                        <div>
+                            <span class="text-xs text-gray-500 block">Wallet ID</span>
+                            <span class="text-sm font-semibold text-gray-300 font-mono" th:text="${wallet != null && wallet.id != null ? #numbers.formatInteger(wallet.id, 5) : '00000'}">00007</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-gray-500 block">Withdrawable</span>
+                            <span class="text-sm font-semibold text-emerald-400 font-mono"
+                                  th:text="'₹' + ${#numbers.formatDecimal(wallet.balance > 500.0 ? (wallet.balance - 500.0) : 0.0, 1, 2)}">₹0.00</span>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Load Funds Form Widget -->
-                <div class="glass-card p-6 rounded-2xl shadow-xl lg:col-span-2">
-                    <h3 class="text-lg font-bold text-white mb-2">Load Funds</h3>
-                    <p class="text-gray-400 text-xs mb-6">Top up your wallet balance instantly. Funds will be loaded
-                        directly from your linked banking entity.</p>
+                <div class="glass-card p-6 rounded-2xl shadow-xl flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-lg font-bold text-white">Load Funds</h3>
+                            <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">Instant</span>
+                        </div>
+                        <p class="text-gray-400 text-xs mb-4">Top up your wallet balance instantly. Funds will be loaded directly from your linked banking entity.</p>
+                    </div>
 
-                    <form id="razorpay-form" onsubmit="return showNotImplementedModal(event)" class="space-y-4">
+                    <form id="razorpay-form" class="space-y-4">
                         <div>
                             <label class="text-xs text-gray-400 block mb-1">Top Up Amount (₹)</label>
-                            <input type="number" id="topup-amount" name="amount" min="1" max="1000" step="any" required
-                                placeholder="Enter amount to add"
+                            <input type="number" id="topup-amount" name="amount" min="1" max="2000" step="any" required
+                                placeholder="Enter amount to add (Max ₹2000)"
                                 class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-3 text-white text-sm focus:outline-none transition">
+                            <p class="text-[11px] text-gray-500 mt-1">Maximum ₹2000 per transaction</p>
                         </div>
 
                         <button type="submit"
-                            class="w-full py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition shadow-lg">
-                            Add Money to Wallet
+                            class="w-full py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition shadow-lg flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-arrow-down-to-bracket text-xs"></i>
+                            <span>Add Money to Wallet</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Withdraw Funds Form Widget -->
+                <div class="glass-card p-6 rounded-2xl shadow-xl flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-lg font-bold text-white">Withdraw Funds</h3>
+                            <span class="text-xs px-2.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20 font-medium">Secure</span>
+                        </div>
+                        <p class="text-gray-400 text-xs mb-4">Withdraw funds to your account. At least ₹500 balance must be maintained in your wallet.</p>
+                    </div>
+
+                    <form id="razorpay-withdraw-form" class="space-y-4">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="text-xs text-gray-400 block">Withdraw Amount (₹)</label>
+                                <span class="text-[11px] text-orange-400 font-medium"
+                                      th:text="${wallet.balance > 500.0 ? 'Max: ₹' + #numbers.formatDecimal(wallet.balance - 500.0, 1, 2) : 'Max: ₹0.00'}">Max: ₹0.00</span>
+                            </div>
+                            <input type="number" id="withdraw-amount" name="amount" min="1" 
+                                th:max="${wallet.balance > 500.0 ? (wallet.balance - 500.0) : 0}" step="any" required
+                                th:placeholder="${wallet.balance > 500.0 ? 'Enter amount (Max ₹' + #numbers.formatDecimal(wallet.balance - 500.0, 1, 2) + ')' : 'Cannot withdraw (Balance \u2264 \u20B9500)'}"
+                                th:disabled="${wallet.balance <= 500.0}"
+                                class="w-full bg-gray-950/60 border border-gray-900 focus:border-indigo-500 rounded-lg p-3 text-white text-sm focus:outline-none transition disabled:opacity-50 disabled:cursor-not-allowed">
+                            <p class="text-[11px] text-gray-500 mt-1"
+                               th:text="${wallet.balance > 500.0 ? '₹500 security reserve will remain in wallet' : 'Reserve requirement not met (Requires > ₹500 balance)'}">
+                                Minimum ₹500 balance reserve required
+                            </p>
+                        </div>
+
+                        <button type="submit" id="withdraw-btn"
+                            th:disabled="${wallet.balance <= 500.0}"
+                            class="w-full py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition shadow-lg flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-arrow-up-from-bracket text-xs"></i>
+                            <span>Withdraw from Wallet</span>
                         </button>
                     </form>
                 </div>
@@ -93,38 +151,39 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm text-gray-300">
                         <thead>
-                            <tr class="text-xs font-semibold uppercase tracking-wider border-b border-gray-800">
-                                <th class="px-6 py-4 rounded-l-xl">Transaction ID</th>
-                                <th class="px-6 py-4">Date</th>
-                                <th class="px-6 py-4">Type</th>
-                                <th class="px-6 py-4">Method</th>
-                                <th class="px-6 py-4 text-right rounded-r-xl">Amount</th>
+                            <tr class="text-xs text-gray-500 border-b border-gray-900 uppercase">
+                                <th class="pb-3">Transaction ID</th>
+                                <th class="pb-3">Date</th>
+                                <th class="pb-3">Type</th>
+                                <th class="pb-3">Method</th>
+                                <th class="pb-3 text-right">Amount</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-900">
                             <!-- Empty State -->
                             <tr th:if="${#lists.isEmpty(wallet.transactions)}">
-                                <td colspan="5" class="py-12 px-6 text-center text-gray-500 text-xs">No transactions recorded yet.</td>
+                                <td colspan="5" class="py-8 text-center text-gray-500 text-xs">No transactions recorded
+                                    yet.</td>
                             </tr>
                             <!-- Transaction Rows -->
                             <tr th:each="tx : ${wallet.transactions}" class="hover:bg-gray-900/30 transition">
-                                <td class="px-6 py-4 font-mono text-xs text-indigo-400" th:text="${tx.transactionId}">TXN_123
+                                <td class="py-3 font-mono text-xs text-indigo-400" th:text="${tx.id != null ? #numbers.formatInteger(tx.id, 5) : tx.transactionId}">00001
                                 </td>
-                                <td class="px-6 py-4 text-xs"
+                                <td class="py-3 text-xs"
                                     th:text="${#temporals.format(tx.timestamp, 'yyyy-MM-dd HH:mm')}">2026-08-09</td>
-                                <td class="px-6 py-4 text-xs">
+                                <td class="py-3 text-xs">
                                     <span th:if="${tx.transactionType.name() == 'CREDIT'}"
-                                        class="px-2.5 py-1 rounded bg-emerald-950/50 text-emerald-400 border border-emerald-500/20 font-semibold uppercase text-[10px]">
+                                        class="px-2 py-0.5 rounded bg-emerald-950/50 text-emerald-400 border border-emerald-500/20 font-semibold uppercase text-[10px]">
                                         Credit
                                     </span>
                                     <span th:if="${tx.transactionType.name() == 'DEBIT'}"
-                                        class="px-2.5 py-1 rounded bg-rose-950/50 text-rose-400 border border-rose-500/20 font-semibold uppercase text-[10px]">
+                                        class="px-2 py-0.5 rounded bg-rose-950/50 text-rose-400 border border-rose-500/20 font-semibold uppercase text-[10px]">
                                         Debit
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-xs font-medium text-gray-400" th:text="${tx.transactionMethod}">
+                                <td class="py-3 text-xs font-medium text-gray-400" th:text="${tx.transactionMethod}">
                                     BANK</td>
-                                <td class="px-6 py-4 text-right font-bold"
+                                <td class="py-3 text-right font-bold"
                                     th:classappend="${tx.transactionType.name() == 'CREDIT' ? 'text-emerald-400' : 'text-rose-400'}"
                                     th:text="${tx.transactionType.name() == 'CREDIT' ? '+' : '-'} + '₹' + ${#numbers.formatDecimal(tx.amount, 1, 2)}">
                                     +₹10.00
@@ -143,6 +202,184 @@
 
     <!-- Script triggers -->
     <div th:replace="~{fragments/navigation :: navigationScripts}"></div>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script th:inline="javascript">
+        document.getElementById('razorpay-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const amountInput = document.getElementById('topup-amount').value;
+            const amount = parseFloat(amountInput);
+            if (isNaN(amount) || amount <= 0) {
+                alert("Please enter a valid amount.");
+                return;
+            }
+
+            // Create order on backend
+            fetch('/rider/wallet/create-order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ amount: amount })
+            })
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error("Could not create Razorpay Order on server.");
+                    }
+                    return res.json();
+                })
+                .then(orderData => {
+                    const options = {
+                        key: orderData.keyId,
+                        amount: orderData.amount,
+                        currency: orderData.currency,
+                        name: "RideMesh",
+                        description: "Wallet Top Up",
+                        image: "https://res.cloudinary.com/dvb5mesnd/image/upload/v1792821669/RideMeshIcon-modified_hwnpel.png",
+                        order_id: orderData.orderId,
+                        handler: function (response) {
+                            // On successful checkout, verify payment on backend
+                            fetch('/rider/wallet/verify-payment', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    razorpayOrderId: response.razorpay_order_id,
+                                    razorpayPaymentId: response.razorpay_payment_id,
+                                    razorpaySignature: response.razorpay_signature,
+                                    amount: amount.toString()
+                                })
+                            })
+                                .then(verifyRes => {
+                                    if (!verifyRes.ok) {
+                                        throw new Error("Payment signature verification failed.");
+                                    }
+                                    return verifyRes.json();
+                                })
+                                .then(walletDto => {
+                                    window.location.href = '/rider/wallet';
+                                })
+                                .catch(err => {
+                                    alert("Payment verification failed: " + err.message);
+                                    window.location.reload();
+                                });
+                        },
+                        prefill: {
+                            name: /*[[${currentUser.name}]]*/ "John Doe",
+                            email: /*[[${currentUser.email}]]*/ "john@example.com",
+                            contact: "8928802932"
+                        },
+                        theme: {
+                            color: "#f97316"
+                        }
+                    };
+
+                    const rzp = new Razorpay(options);
+                    rzp.open();
+                })
+                .catch(err => {
+                    alert("Failed to initialize payment: " + err.message);
+                });
+        });
+
+        // Handle Withdraw Form Submission
+        const withdrawForm = document.getElementById('razorpay-withdraw-form');
+        if (withdrawForm) {
+            withdrawForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const currentBalance = parseFloat(/*[[${wallet.balance}]]*/ 0.0);
+                const amountInput = document.getElementById('withdraw-amount').value;
+                const amount = parseFloat(amountInput);
+
+                if (isNaN(amount) || amount <= 0) {
+                    alert("Please enter a valid amount to withdraw.");
+                    return;
+                }
+
+                if (currentBalance <= 500.0) {
+                    alert("Cannot withdraw. You must maintain at least ₹500 balance in your wallet.");
+                    return;
+                }
+
+                const maxAllowed = Math.max(0, currentBalance - 500.0);
+                if (amount > maxAllowed) {
+                    alert("Withdrawal amount cannot exceed ₹" + maxAllowed.toFixed(2) + ". A minimum balance of ₹500 must be maintained in your wallet.");
+                    return;
+                }
+
+                // Create withdraw order on backend
+                fetch('/rider/wallet/create-withdraw-order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ amount: amount })
+                })
+                    .then(res => {
+                        if (!res.ok) {
+                            return res.text().then(text => { throw new Error(text || "Could not initialize withdrawal order."); });
+                        }
+                        return res.json();
+                    })
+                    .then(orderData => {
+                        const options = {
+                            key: orderData.keyId,
+                            amount: orderData.amount,
+                            currency: orderData.currency,
+                            name: "RideMesh",
+                            description: "Wallet Withdrawal",
+                            image: "https://res.cloudinary.com/dvb5mesnd/image/upload/v1792821669/RideMeshIcon-modified_hwnpel.png",
+                            order_id: orderData.orderId,
+                            handler: function (response) {
+                                // On successful checkout verification, deduct wallet balance on backend
+                                fetch('/rider/wallet/verify-withdraw', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        razorpayOrderId: response.razorpay_order_id,
+                                        razorpayPaymentId: response.razorpay_payment_id,
+                                        razorpaySignature: response.razorpay_signature,
+                                        amount: amount.toString()
+                                    })
+                                })
+                                    .then(verifyRes => {
+                                        if (!verifyRes.ok) {
+                                            return verifyRes.text().then(text => { throw new Error(text || "Withdrawal verification failed."); });
+                                        }
+                                        return verifyRes.json();
+                                    })
+                                    .then(walletDto => {
+                                        window.location.href = '/rider/wallet';
+                                    })
+                                    .catch(err => {
+                                        alert("Withdrawal verification failed: " + err.message);
+                                        window.location.reload();
+                                    });
+                            },
+                            prefill: {
+                                name: /*[[${currentUser.name}]]*/ "John Doe",
+                                email: /*[[${currentUser.email}]]*/ "john@example.com",
+                                contact: /*[[${currentUser.phoneNumber != null ? currentUser.phoneNumber : '8928802932'}]]*/ "8928802932"
+                            },
+                            theme: {
+                                color: "#f97316"
+                            }
+                        };
+
+                        const rzp = new Razorpay(options);
+                        rzp.open();
+                    })
+                    .catch(err => {
+                        alert("Failed to initialize withdrawal: " + err.message);
+                    });
+            });
+        }
+    </script>
 </body>
 
 </html>

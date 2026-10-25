@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RideMesh - Report Applications</title>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: var(--color-bg, #ffffff);
+            color: var(--color-text, #0f172a);
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-card {
+            background: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+    </style>
+    <!-- Include Theme Styles in head -->
+    <th:block th:replace="~{fragments/navigation :: themeStyles}"></th:block>
+</head>
+<body class="min-h-screen flex flex-col lg:flex-row w-full overflow-x-hidden">
+
+    <!-- Sidebar fragment injection -->
+    <div th:replace="~{fragments/navigation :: sidebar('reports', ${currentUser})}"></div>
+
+    <div class="flex-1 flex flex-col min-h-screen w-full min-w-0">
+        <!-- Top Navbar fragment injection -->
+        <header th:replace="~{fragments/navigation :: navbar(${currentUser})}"></header>
+
+        <main class="flex-grow p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 relative overflow-hidden">
+            <div class="absolute -top-40 -left-40 w-96 h-96 bg-purple-600 rounded-full filter blur-3xl opacity-10 animate-pulse"></div>
+
+            <!-- Header Panel -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative z-10">
+                <div>
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Report Applications
+                    </h2>
+                    <p class="text-xs text-gray-400">Review incident reports submitted by riders, examine compulsory evidence, send notices, or suspend drivers.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="px-3 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-semibold">
+                        <i class="fa-solid fa-shield-halved mr-1"></i> Driver Moderation
+                    </span>
+                </div>
+            </div>
+
+            <!-- Success / Error Alert Messages -->
+            <div th:if="${successMessage != null}" class="p-4 rounded-xl bg-emerald-950/50 border border-emerald-500/30 text-emerald-400 text-xs text-center shadow-lg relative z-10">
+                <span th:text="${successMessage}">Success message</span>
+            </div>
+            <div th:if="${errorMessage != null}" class="p-4 rounded-xl bg-rose-950/50 border border-rose-500/30 text-rose-400 text-xs text-center shadow-lg relative z-10">
+                <span th:text="${errorMessage}">Error message</span>
+            </div>
+
+            <!-- Search Bar (No Severity Filter) -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                <div class="relative max-w-md w-full">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-500">
+                        <i class="fas fa-search text-xs"></i>
+                    </span>
+                    <input type="text" id="searchReportsInput" placeholder="Search reports by ID, rider, driver, reason, or status..." 
+                           class="w-full pl-10 pr-4 py-2.5 bg-gray-950/60 border border-gray-900 focus:border-orange-500 rounded-xl text-white text-xs focus:outline-none transition shadow-sm"
+                           onkeyup="filterReports()">
+                </div>
+                <div class="flex items-center gap-2 text-xs">
+                    <span class="text-gray-400 text-xs" th:text="'Total Reports: ' + (${reports != null ? reports.size() : 0})">Total Reports: 0</span>
+                </div>
+            </div>
+
+            <!-- Reports List Table -->
+            <div class="glass-card rounded-2xl overflow-hidden shadow-xl border border-gray-200 dark:border-zinc-800 relative z-10">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="border-b border-gray-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/60 text-gray-400 uppercase tracking-wider text-[10px]">
+                                <th class="py-3.5 px-4 font-bold">Report ID</th>
+                                <th class="py-3.5 px-4 font-bold">Date</th>
+                                <th class="py-3.5 px-4 font-bold">Rider</th>
+                                <th class="py-3.5 px-4 font-bold">Driver</th>
+                                <th class="py-3.5 px-4 font-bold">Ride ID</th>
+                                <th class="py-3.5 px-4 font-bold">Reason</th>
+                                <th class="py-3.5 px-4 font-bold text-center">Evidence</th>
+                                <th class="py-3.5 px-4 font-bold">Status</th>
+                                <th class="py-3.5 px-4 font-bold text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-zinc-800/60 text-gray-300" id="reportsTableBody">
+                            <!-- Empty State -->
+                            <tr th:if="${#lists.isEmpty(reports)}">
+                                <td colspan="9" class="py-10 text-center text-gray-500 text-xs">
+                                    <i class="fa-solid fa-circle-check text-2xl text-emerald-500 block mb-2"></i>
+                                    No driver incident reports found. All drivers are compliant!
+                                </td>
+                            </tr>
+
+                            <!-- Reports Dynamic Rows -->
+                            <tr th:each="rpt : ${reports}" class="report-row hover:bg-slate-50 dark:hover:bg-zinc-900/40 transition">
+                                <td class="py-3.5 px-4 font-mono font-bold text-rose-400" th:text="'#RPT-' + ${rpt.id != null ? #numbers.formatInteger(rpt.id, 4) : '0000'}">#RPT-0001</td>
+                                <td class="py-3.5 px-4 text-[11px] text-gray-400" th:text="${rpt.createdAt != null ? #temporals.format(rpt.createdAt, 'yyyy-MM-dd HH:mm') : 'Recently'}">2026-10-25 12:00</td>
+                                <td class="py-3.5 px-4">
+                                    <span class="font-bold text-white block" th:text="${rpt.riderName != null ? rpt.riderName : 'Rider'}">Rider Name</span>
+                                    <span class="text-[10px] text-gray-400 block" th:text="${rpt.riderEmail}">rider@email.com</span>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <span class="font-bold text-orange-400 block" th:text="${rpt.driverName != null ? rpt.driverName : 'Driver'}">Driver Name</span>
+                                    <span class="text-[10px] text-gray-400 block" th:text="'Driver ID: ' + ${rpt.driverId}">Driver ID: 1</span>
+                                    <span class="text-[10px] text-gray-500 block" th:text="${rpt.driverEmail}">driver@email.com</span>
+                                </td>
+                                <td class="py-3.5 px-4 font-mono text-xs text-indigo-400">
+                                    <span th:if="${rpt.rideId != null}" th:text="'#' + ${#numbers.formatInteger(rpt.rideId, 5)}">#00001</span>
+                                    <span th:unless="${rpt.rideId != null}" class="text-gray-500">-</span>
+                                </td>
+                                <td class="py-3.5 px-4 max-w-xs">
+                                    <p class="text-white text-xs line-clamp-2" th:text="${rpt.reason}">Incident reason</p>
+                                    <span th:if="${rpt.noticeMessage != null}" class="block text-[10px] text-amber-400/90 mt-1 italic truncate" th:title="'Notice: ' + ${rpt.noticeMessage}">
+                                        Notice: <span th:text="${rpt.noticeMessage}"></span>
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-4 text-center">
+                                    <a th:if="${rpt.mediaUrl != null and !#strings.isEmpty(rpt.mediaUrl)}"
+                                       th:href="${rpt.mediaUrl}" target="_blank"
+                                       class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-500/15 hover:bg-orange-500/25 border border-orange-500/30 text-orange-400 font-semibold text-[11px] transition shadow-sm">
+                                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                        <span>View Media</span>
+                                    </a>
+                                    <span th:unless="${rpt.mediaUrl != null and !#strings.isEmpty(rpt.mediaUrl)}" class="text-gray-500 text-[10px]">No media</span>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <span th:if="${rpt.status == 'PENDING'}" class="px-2.5 py-1 rounded-full bg-amber-950/50 text-amber-400 border border-amber-500/20 font-bold uppercase text-[9px]">
+                                        Pending
+                                    </span>
+                                    <span th:if="${rpt.status == 'NOTICE_SENT'}" class="px-2.5 py-1 rounded-full bg-blue-950/50 text-blue-400 border border-blue-500/20 font-bold uppercase text-[9px]">
+                                        Notice Sent
+                                    </span>
+                                    <span th:if="${rpt.status == 'SUSPENDED'}" class="px-2.5 py-1 rounded-full bg-rose-950/50 text-rose-400 border border-rose-500/20 font-bold uppercase text-[9px]">
+                                        Suspended
+                                    </span>
+                                    <span th:if="${rpt.status == 'RESOLVED'}" class="px-2.5 py-1 rounded-full bg-emerald-950/50 text-emerald-400 border border-emerald-500/20 font-bold uppercase text-[9px]">
+                                        Resolved
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-4 text-right">
+                                    <div class="inline-flex items-center gap-2">
+                                        <!-- Send a Notice Button -->
+                                        <button type="button"
+                                                th:data-report-id="${rpt.id}"
+                                                th:data-driver-name="${rpt.driverName != null ? rpt.driverName : 'Driver'}"
+                                                onclick="openNoticeModal(this.getAttribute('data-report-id'), this.getAttribute('data-driver-name'))"
+                                                class="px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-400 hover:text-amber-300 font-semibold text-[11px] transition shadow-sm flex items-center gap-1">
+                                            <i class="fa-regular fa-envelope text-[10px]"></i>
+                                            <span>Send Notice</span>
+                                        </button>
+
+                                        <!-- Suspend Driver Button -->
+                                        <form th:if="${rpt.status != 'SUSPENDED'}"
+                                              th:action="@{/admin/reports/{id}/suspend-driver(id=${rpt.id})}"
+                                              method="POST"
+                                              onsubmit="return confirm('Are you sure you want to suspend this driver? Their driver role will be revoked immediately.');">
+                                            <button type="submit"
+                                                    class="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold text-[11px] transition shadow-sm flex items-center gap-1">
+                                                <i class="fa-solid fa-ban text-[10px]"></i>
+                                                <span>Suspend</span>
+                                            </button>
+                                        </form>
+                                        <span th:if="${rpt.status == 'SUSPENDED'}" class="text-[10px] text-rose-400 font-semibold">Driver Suspended</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <footer class="text-center py-6 text-xs text-gray-500 border-t border-gray-900">
+            &copy; 2026 RideMesh Systems Inc. All rights reserved.
+        </footer>
+    </div>
+
+    <!-- Send Notice Popup Modal -->
+    <div id="noticeModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-card bg-slate-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative text-slate-200">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-800">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                        <i class="fa-regular fa-envelope text-sm"></i>
+                    </span>
+                    <div>
+                        <h3 class="text-base font-bold text-white">Send Notice to Driver</h3>
+                        <p class="text-[11px] text-gray-400" id="noticeModalSubtitle">Notice will be emailed to the driver</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeNoticeModal()" class="text-gray-400 hover:text-white transition text-lg">&times;</button>
+            </div>
+
+            <form id="noticeForm" method="POST" action="" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1.5">
+                        Notice Message <span class="text-amber-400">*</span>
+                    </label>
+                    <textarea id="noticeMessageInput" name="noticeMessage" rows="4" required
+                              placeholder="Enter official warning / notice text to send to the driver..."
+                              class="w-full bg-gray-950/70 border border-gray-800 focus:border-amber-500 rounded-xl p-3 text-xs text-white focus:outline-none transition resize-none"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end space-x-3 pt-2 border-t border-gray-800">
+                    <button type="button" onclick="closeNoticeModal()"
+                            class="px-4 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 text-xs font-semibold transition border border-gray-800">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition shadow-md flex items-center gap-1.5">
+                        <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                        <span>Send Notice</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script triggers -->
+    <div th:replace="~{fragments/navigation :: navigationScripts}"></div>
+
+    <script>
+        function filterReports() {
+            const query = document.getElementById('searchReportsInput').value.toLowerCase().trim();
+            const rows = document.querySelectorAll('.report-row');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        function openNoticeModal(reportId, driverName) {
+            document.getElementById('noticeModalSubtitle').innerText = 'Sending notice to: ' + (driverName || 'Driver') + ' (Report #' + reportId + ')';
+            document.getElementById('noticeMessageInput').value = '';
+            document.getElementById('noticeForm').action = '/admin/reports/' + reportId + '/send-notice';
+            document.getElementById('noticeModal').classList.remove('hidden');
+        }
+
+        function closeNoticeModal() {
+            document.getElementById('noticeModal').classList.add('hidden');
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeNoticeModal();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -42,4 +42,8 @@ public class WalletDto {
     public void setTransactions(List<WalletTransactionDto> transactions) {
         this.transactions = transactions;
     }
+
+    public String getFormattedId() {
+        return id != null ? String.format("%05d", id) : "00000";
+    }
 }

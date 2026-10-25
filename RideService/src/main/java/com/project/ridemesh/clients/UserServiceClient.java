@@ -125,5 +125,29 @@ public class UserServiceClient {
             return null;
         }
     }
+
+    public Double getDriverRatingForRide(Long rideId) {
+        String url = USER_SERVICE_BASE_URL + "/internal/ratings/ride/" + rideId;
+        try {
+            java.util.Map<?, ?> responseMap = restTemplate.getForObject(url, java.util.Map.class);
+            if (responseMap != null) {
+                Object dataObj = responseMap.get("data");
+                java.util.Map<?, ?> targetMap = (dataObj instanceof java.util.Map) ? (java.util.Map<?, ?>) dataObj : responseMap;
+
+                Object ratingVal = targetMap.get("driverRating");
+                if (ratingVal == null) {
+                    ratingVal = targetMap.get("rating");
+                }
+                if (ratingVal instanceof Number) {
+                    return ((Number) ratingVal).doubleValue();
+                } else if (ratingVal != null) {
+                    return Double.parseDouble(ratingVal.toString());
+                }
+            }
+        } catch (Exception e) {
+            // Not found or not yet rated
+        }
+        return null;
+    }
 }
 

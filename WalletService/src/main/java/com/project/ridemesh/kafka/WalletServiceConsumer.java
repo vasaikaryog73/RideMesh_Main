@@ -48,8 +48,8 @@ public class WalletServiceConsumer {
             Map<String, Object> payload = objectMapper.readValue(message, Map.class);
 
             Long rideId = ((Number) payload.get("rideId")).longValue();
-            Long riderId = ((Number) payload.get("riderId")).longValue();
-            Long driverId = ((Number) payload.get("driverId")).longValue();
+            Long riderUserId = payload.get("riderUserId") != null ? ((Number) payload.get("riderUserId")).longValue() : ((Number) payload.get("riderId")).longValue();
+            Long driverUserId = payload.get("driverUserId") != null ? ((Number) payload.get("driverUserId")).longValue() : ((Number) payload.get("driverId")).longValue();
             Double fare = ((Number) payload.get("fare")).doubleValue();
             String paymentMethod = (String) payload.get("paymentMethod");
 
@@ -60,7 +60,7 @@ public class WalletServiceConsumer {
             }
 
             try {
-                Payment payment = paymentService.createNewPayment(rideId, driverId, riderId, fare, paymentMethod);
+                Payment payment = paymentService.createNewPayment(rideId, driverUserId, riderUserId, fare, paymentMethod);
                 paymentService.processPayment(payment);
             } catch (DataIntegrityViolationException ex) {
                 // Concurrent event processing caught by unique constraint on rideId

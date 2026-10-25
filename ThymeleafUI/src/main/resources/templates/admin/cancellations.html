@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RideMesh - Driver Cancellation Requests</title>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: var(--color-bg, #ffffff);
+            color: var(--color-text, #0f172a);
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-card {
+            background: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+    </style>
+    <!-- Include Theme Styles in head -->
+    <th:block th:replace="~{fragments/navigation :: themeStyles}"></th:block>
+</head>
+<body class="min-h-screen flex flex-col lg:flex-row w-full overflow-x-hidden">
+
+    <!-- Sidebar fragment injection -->
+    <div th:replace="~{fragments/navigation :: sidebar('cancellations', ${currentUser})}"></div>
+
+    <div class="flex-1 flex flex-col min-h-screen w-full min-w-0">
+        <!-- Top Navbar fragment injection -->
+        <header th:replace="~{fragments/navigation :: navbar(${currentUser})}"></header>
+
+        <main class="flex-grow p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 relative overflow-hidden">
+            <div class="absolute -top-40 -left-40 w-96 h-96 bg-orange-600 rounded-full filter blur-3xl opacity-10 animate-pulse"></div>
+
+            <!-- Header Panel -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative z-10">
+                <div>
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-user-xmark text-orange-500"></i> Driver Cancellation Requests
+                    </h2>
+                    <p class="text-xs text-gray-400">Review driver offboarding applications, reasons, and attached documents.</p>
+                </div>
+            </div>
+
+            <!-- Success / Error Alert Messages -->
+            <div th:if="${successMessage != null}" class="p-4 rounded-xl bg-emerald-950/50 border border-emerald-500/30 text-emerald-400 text-xs text-center shadow-lg relative z-10">
+                <span th:text="${successMessage}">Success message</span>
+            </div>
+            <div th:if="${errorMessage != null}" class="p-4 rounded-xl bg-rose-950/50 border border-rose-500/30 text-rose-400 text-xs text-center shadow-lg relative z-10">
+                <span th:text="${errorMessage}">Error message</span>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="relative max-w-md w-full relative z-10">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-500">
+                    <i class="fas fa-search text-xs"></i>
+                </span>
+                <input type="text" id="searchCancellationsInput" placeholder="Search by driver name, email, vehicle, status..." 
+                       class="w-full pl-10 pr-4 py-2.5 bg-gray-950/60 border border-gray-900 focus:border-orange-500 rounded-xl text-white text-xs focus:outline-none transition shadow-sm"
+                       onkeyup="filterCancellations()">
+            </div>
+
+            <!-- Cancellation Requests Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10" id="cancellationsContainer">
+                <div th:if="${#lists.isEmpty(cancellations)}" class="col-span-2 glass-card p-12 text-center text-gray-500 text-sm rounded-2xl">
+                    <i class="fa-solid fa-clipboard-check text-3xl mb-3 text-gray-600 block"></i>
+                    No cancellation requests submitted yet.
+                </div>
+
+                <!-- Cancellation Card -->
+                <div th:each="req : ${cancellations}" class="cancellation-card glass-card p-6 rounded-2xl shadow-xl flex flex-col justify-between space-y-4 border border-gray-200 dark:border-zinc-800">
+                    <div class="flex justify-between items-start border-b border-gray-200 dark:border-zinc-800 pb-3">
+                        <div>
+                            <h4 class="text-base font-bold text-white card-driver-name" th:text="${req.driverName}">Driver Name</h4>
+                            <p class="text-[11px] text-gray-400 font-mono card-driver-email" th:text="${req.driverEmail}">driver@example.com</p>
+                            <p class="text-[10px] text-gray-500 mt-0.5" th:text="'Request #' + ${req.id} + ' • User ID: ' + ${req.userId}">Request #1 • User ID: 10</p>
+                        </div>
+                        <span th:class="${req.status == 'PENDING' ? 'px-2.5 py-1 rounded-full bg-amber-950/50 text-amber-400 border border-amber-500/20 font-bold uppercase text-[10px]' : (req.status == 'APPROVED' ? 'px-2.5 py-1 rounded-full bg-emerald-950/50 text-emerald-400 border border-emerald-500/20 font-bold uppercase text-[10px]' : 'px-2.5 py-1 rounded-full bg-rose-950/50 text-rose-400 border border-rose-500/20 font-bold uppercase text-[10px]')}"
+                              th:text="${req.status}">
+                            PENDING
+                        </span>
+                    </div>
+
+                    <!-- Driver Vehicle Info -->
+                    <div class="grid grid-cols-2 gap-2 text-xs text-gray-400 bg-slate-50 dark:bg-zinc-900/40 p-3 rounded-xl border border-slate-200 dark:border-zinc-800/80">
+                        <div>
+                            <span class="block text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Assigned Vehicle</span>
+                            <span class="text-white font-medium capitalize" th:text="${req.vehicleType != null ? req.vehicleType : 'Auto Rickshaw'}">Car</span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Vehicle Plate</span>
+                            <span class="text-white font-medium font-mono text-orange-400 font-bold" th:text="${req.vehicleId != null ? req.vehicleId : 'N/A'}">MH 12 AB 1234</span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Phone</span>
+                            <span class="text-white font-mono" th:text="${req.phoneNumber != null ? req.phoneNumber : 'N/A'}">+91 9876543210</span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Submitted At</span>
+                            <span class="text-white" th:text="${req.createdAt != null ? #temporals.format(req.createdAt, 'dd MMM yyyy, HH:mm') : 'Recently'}">25 Oct 2026, 14:00</span>
+                        </div>
+                    </div>
+
+                    <!-- Reason Block -->
+                    <div class="space-y-1">
+                        <span class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Reason for Cancellation:</span>
+                        <div class="p-3 rounded-xl bg-orange-500/5 dark:bg-orange-950/20 border border-orange-500/20 text-xs text-white leading-relaxed whitespace-pre-wrap card-reason" th:text="${req.reason}">
+                            Driver stated personal reasons or vehicle transition.
+                        </div>
+                    </div>
+
+                    <!-- Optional Attached Media -->
+                    <div th:if="${req.mediaUrl != null and !#strings.isEmpty(req.mediaUrl)}" class="space-y-1">
+                        <span class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Attached Media:</span>
+                        <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800">
+                            <a th:href="${req.mediaUrl}" target="_blank" class="w-16 h-16 rounded-lg overflow-hidden border border-slate-300 dark:border-zinc-700 block shrink-0 hover:opacity-80 transition bg-black">
+                                <img th:src="${req.mediaUrl}" alt="Media attachment" class="w-full h-full object-cover" />
+                            </a>
+                            <div class="text-xs">
+                                <span class="font-semibold text-white block">Document / Evidence</span>
+                                <a th:href="${req.mediaUrl}" target="_blank" class="text-orange-500 hover:text-orange-400 text-[11px] underline flex items-center gap-1 mt-0.5">
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i> View Full Attachment
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="pt-2 border-t border-gray-200 dark:border-zinc-800">
+                        <div th:if="${req.status == 'PENDING'}" class="flex gap-2">
+                            <form th:action="@{/admin/cancellations/{id}/approve(id=${req.id})}" method="POST" class="flex-1"
+                                  onsubmit="return confirm('Approve driver cancellation? This will deactivate the driver account and revert this user back to Rider.');">
+                                <button type="submit" 
+                                        class="w-full py-2.5 px-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-xs shadow-lg shadow-orange-500/20 transition flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-check"></i> Approve Cancellation
+                                </button>
+                            </form>
+                            <form th:action="@{/admin/cancellations/{id}/reject(id=${req.id})}" method="POST" class="shrink-0"
+                                  onsubmit="return confirm('Reject this cancellation request?');">
+                                <button type="submit" 
+                                        class="py-2.5 px-4 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl font-medium text-xs transition flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-xmark"></i> Reject
+                                </button>
+                            </form>
+                        </div>
+                        <div th:if="${req.status == 'APPROVED'}" class="text-center py-2 text-xs font-semibold text-emerald-400 flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-circle-check"></i> Driver Account Cancelled • Reverted to Rider
+                        </div>
+                        <div th:if="${req.status == 'REJECTED'}" class="text-center py-2 text-xs font-semibold text-rose-400 flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-circle-xmark"></i> Cancellation Request Rejected
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="text-center py-6 text-xs text-gray-500 border-t border-gray-900">
+            &copy; 2026 RideMesh Systems Inc. All rights reserved.
+        </footer>
+    </div>
+
+    <!-- Script triggers -->
+    <div th:replace="~{fragments/navigation :: navigationScripts}"></div>
+
+    <script>
+        function filterCancellations() {
+            const query = document.getElementById('searchCancellationsInput').value.toLowerCase().trim();
+            const cards = document.querySelectorAll('.cancellation-card');
+            cards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

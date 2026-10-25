@@ -8,7 +8,7 @@
     <!-- Sidebar Fragment -->
     <div th:fragment="sidebar(activePage, user)" 
          id="sidebar-menu" 
-         class="w-64 glass-card border-r border-gray-950 flex flex-col justify-between shrink-0 min-h-screen text-gray-300 fixed lg:static inset-y-0 left-0 z-50 -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+         class="w-64 glass-card border-r border-gray-950 flex flex-col justify-between shrink-0 h-screen fixed lg:sticky lg:top-0 inset-y-0 left-0 z-50 -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out overflow-hidden text-gray-300">
         
         <!-- Font Awesome -->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -16,12 +16,11 @@
         <!-- Include Theme Styles -->
         <th:block th:replace="~{fragments/navigation :: themeStyles}"></th:block>
 
-
-        <div>
+        <div class="flex flex-col flex-1 overflow-hidden">
             <!-- Branding Logo -->
-            <div class="p-6 border-b border-gray-950 flex items-center justify-between">
+            <div class="py-3.5 px-5 border-b border-gray-950 flex items-center justify-between shrink-0">
                 <a th:href="@{/}" class="flex items-center space-x-3 brand-link">
-                    <img src="https://res.cloudinary.com/dvb5mesnd/image/upload/v1788200216/RideMeshIcon-main_z7q9bk.png" alt="RideMesh Logo" class="w-8 h-8 rounded-lg object-contain shadow-sm" />
+                    <img src="https://res.cloudinary.com/dvb5mesnd/image/upload/v1792821669/RideMeshIcon-modified_hwnpel.png" alt="RideMesh Logo" class="w-8 h-8 rounded-lg object-contain shadow-sm" />
                     <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
                         RideMesh
                     </span>
@@ -35,73 +34,85 @@
             </div>
 
             <!-- Navigation Menu Options -->
-            <nav class="p-4 space-y-2">
+            <nav class="p-3 space-y-1 flex-1 overflow-hidden">
                 <!-- Rider Options -->
                 <div th:if="${user.roles.contains('RIDER')}" class="space-y-1">
-                    <span class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-2">Rider Console</span>
+                    <span class="px-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider block mb-1">Rider Console</span>
                     <a th:href="@{/rider/dashboard}" 
-                       th:class="${activePage == 'book' ? 'flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-indigo-600/20 text-indigo-400 font-medium transition' : 'flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-gray-900/60 hover:text-white transition'}">
+                       th:class="${activePage == 'book' ? 'flex items-center space-x-3 px-3 py-2 rounded-lg bg-indigo-600/20 text-indigo-400 font-medium transition text-sm' : 'flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-900/60 hover:text-white transition text-sm'}">
                         <span class="w-5 text-center"><i class="fa-solid fa-map-location-dot"></i></span> <span>Book a Ride</span>
                     </a>
                     <a th:href="@{/rider/wallet}" 
-                       th:class="${activePage == 'wallet' ? 'flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-indigo-600/20 text-indigo-400 font-medium transition' : 'flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-gray-900/60 hover:text-white transition'}">
+                       th:class="${activePage == 'wallet' ? 'flex items-center space-x-3 px-3 py-2 rounded-lg bg-indigo-600/20 text-indigo-400 font-medium transition text-sm' : 'flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-900/60 hover:text-white transition text-sm'}">
                         <span class="w-5 text-center"><i class="fa-solid fa-credit-card"></i></span> <span>Wallet &amp; Payments</span>
                     </a>
                     <a th:href="@{/rider/history}" 
-                       th:class="${activePage == 'history' ? 'flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-indigo-600/20 text-indigo-400 font-medium transition' : 'flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-gray-900/60 hover:text-white transition'}">
+                       th:class="${activePage == 'history' ? 'flex items-center space-x-3 px-3 py-2 rounded-lg bg-indigo-600/20 text-indigo-400 font-medium transition text-sm' : 'flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-900/60 hover:text-white transition text-sm'}">
                         <span class="w-5 text-center"><i class="fa-solid fa-clock-rotate-left"></i></span> <span>Ride History</span>
                     </a>
                     <a th:href="@{/rider/become-driver}" 
-                       th:class="${activePage == 'become-driver' ? 'flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-indigo-600/20 text-indigo-400 font-medium transition' : 'flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-gray-900/60 hover:text-white transition'}">
+                       th:class="${activePage == 'become-driver' ? 'flex items-center space-x-3 px-3 py-2 rounded-lg bg-indigo-600/20 text-indigo-400 font-medium transition text-sm' : 'flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-900/60 hover:text-white transition text-sm'}">
                         <span class="w-5 text-center"><i class="fa-solid fa-id-card"></i></span> <span>Become a Driver</span>
                     </a>
                 </div>
 
                 <!-- Driver Options -->
                 <div th:if="${currentUser.roles.contains('DRIVER')}" class="space-y-1">
-                    <span class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-2">Driver Console</span>
+                    <span class="px-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider block mb-1">Driver Console</span>
                     <a th:href="@{/driver/dashboard}" 
-                       th:class="${activePage == 'terminal' ? 'flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-purple-600/20 text-purple-400 font-medium transition' : 'flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-gray-900/60 hover:text-white transition'}">
+                       th:class="${activePage == 'terminal' ? 'flex items-center space-x-3 px-3 py-2 rounded-lg bg-purple-600/20 text-purple-400 font-medium transition text-sm' : 'flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-900/60 hover:text-white transition text-sm'}">
                         <span class="w-5 text-center"><i class="fa-solid fa-car-side"></i></span> <span>Driver Terminal</span>
                     </a>
                     <a th:href="@{/driver/history}" 
-                       th:class="${activePage == 'driver-history' ? 'flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-purple-600/20 text-purple-400 font-medium transition' : 'flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-gray-900/60 hover:text-white transition'}">
+                       th:class="${activePage == 'driver-history' ? 'flex items-center space-x-3 px-3 py-2 rounded-lg bg-purple-600/20 text-purple-400 font-medium transition text-sm' : 'flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-900/60 hover:text-white transition text-sm'}">
                         <span class="w-5 text-center"><i class="fa-solid fa-clock-rotate-left"></i></span> <span>Completed Rides</span>
                     </a>
                 </div>
 
                 <!-- Admin Options -->
-                <div th:if="${currentUser.roles.contains('ADMIN')}" class="space-y-1">
-                    <span class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-2">Admin Console</span>
+                <div th:if="${currentUser != null and currentUser.roles != null and currentUser.roles.contains('ADMIN')}" class="space-y-1">
+                    <span class="px-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider block mb-1">Admin Console</span>
                     <a th:href="@{/admin/dashboard}" 
-                       th:class="${activePage == 'admin-dashboard' ? 'flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-purple-600/20 text-purple-400 font-medium transition' : 'flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-gray-900/60 hover:text-white transition'}">
+                       th:class="${activePage == 'admin-dashboard' ? 'flex items-center space-x-3 px-3 py-2 rounded-lg bg-purple-600/20 text-purple-400 font-medium transition text-sm' : 'flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-900/60 hover:text-white transition text-sm'}">
                         <span class="w-5 text-center"><i class="fa-solid fa-screwdriver-wrench"></i></span> <span>Onboard Driver</span>
                     </a>
                     <a th:href="@{/admin/applications}" 
-                       th:class="${activePage == 'applications' ? 'flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-purple-600/20 text-purple-400 font-medium transition' : 'flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-gray-900/60 hover:text-white transition'}">
+                       th:class="${activePage == 'applications' ? 'flex items-center space-x-3 px-3 py-2 rounded-lg bg-purple-600/20 text-purple-400 font-medium transition text-sm' : 'flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-900/60 hover:text-white transition text-sm'}">
                         <span class="w-5 text-center"><i class="fa-solid fa-file-invoice"></i></span> <span>Driver Applications</span>
                     </a>
                     <a th:href="@{/admin/drivers}" 
-                       th:class="${activePage == 'drivers' ? 'flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-purple-600/20 text-purple-400 font-medium transition' : 'flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-gray-900/60 hover:text-white transition'}">
+                       th:class="${activePage == 'drivers' ? 'flex items-center space-x-3 px-3 py-2 rounded-lg bg-purple-600/20 text-purple-400 font-medium transition text-sm' : 'flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-900/60 hover:text-white transition text-sm'}">
                         <span class="w-5 text-center"><i class="fa-solid fa-users-gear"></i></span> <span>Drivers List</span>
+                    </a>
+                    <a th:href="@{/admin/cancellations}" 
+                       th:class="${activePage == 'cancellations' ? 'flex items-center space-x-3 px-3 py-2 rounded-lg bg-purple-600/20 text-purple-400 font-medium transition text-sm' : 'flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-900/60 hover:text-white transition text-sm'}">
+                        <span class="w-5 text-center"><i class="fa-solid fa-user-xmark"></i></span> <span>Cancellation Requests</span>
+                    </a>
+                    <a th:href="@{/admin/reports}" 
+                       th:class="${activePage == 'reports' ? 'flex items-center space-x-3 px-3 py-2 rounded-lg bg-purple-600/20 text-purple-400 font-medium transition text-sm' : 'flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-900/60 hover:text-white transition text-sm'}">
+                        <span class="w-5 text-center"><i class="fa-solid fa-triangle-exclamation"></i></span> <span>Report Applications</span>
+                    </a>
+                    <a th:href="@{/admin/improvement-console}" 
+                       th:class="${activePage == 'improvement-console' ? 'flex items-center space-x-3 px-3 py-2 rounded-lg bg-purple-600/20 text-purple-400 font-medium transition text-sm' : 'flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-900/60 hover:text-white transition text-sm'}">
+                        <span class="w-5 text-center"><i class="fa-solid fa-comments"></i></span> <span>Improvement Console</span>
                     </a>
                 </div>
             </nav>
         </div>
 
         <!-- Sidebar Footer Action Panel -->
-        <div class="p-4 border-t border-gray-950 space-y-2">
+        <div class="p-3 border-t border-gray-950 space-y-1 shrink-0">
             <!-- Sidebar Theme Toggle -->
             <button onclick="toggleTheme()" 
-                    class="flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-gray-900/60 hover:text-white transition w-full text-left">
+                    class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-900/60 hover:text-white transition w-full text-left text-sm">
                 <span class="w-5 text-center"><i class="fa-solid fa-sun text-amber-500" id="theme-toggle-icon"></i></span> <span>Toggle Theme</span>
             </button>
             <a th:href="@{/profile}" 
-               th:class="${activePage == 'profile' ? 'flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-indigo-600/20 text-indigo-400 font-medium transition w-full text-left' : 'flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-gray-900/60 hover:text-white transition w-full text-left'}">
+               th:class="${activePage == 'profile' ? 'flex items-center space-x-3 px-3 py-2 rounded-lg bg-indigo-600/20 text-indigo-400 font-medium transition w-full text-left text-sm' : 'flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-900/60 hover:text-white transition w-full text-left text-sm'}">
                 <span class="w-5 text-center"><i class="fa-solid fa-user"></i></span> <span>Profile</span>
             </a>
             <button onclick="confirmLogout()" 
-                    class="flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-rose-950/20 hover:text-rose-400 transition w-full text-left">
+                    class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-rose-950/20 hover:text-rose-400 transition w-full text-left text-sm">
                 <span class="w-5 text-center"><i class="fa-solid fa-right-from-bracket"></i></span> <span>Log Out</span>
             </button>
         </div>
@@ -109,7 +120,7 @@
 
 
     <!-- Top Navbar Fragment -->
-    <header th:fragment="navbar(user)" class="h-16 glass-card border-b border-gray-950 flex items-center justify-between px-8 text-gray-300 relative z-40 shrink-0">
+    <header th:fragment="navbar(user)" class="h-16 glass-card border-b border-gray-950 flex items-center justify-between px-4 sm:px-6 lg:px-8 text-gray-300 relative z-30 shrink-0">
         <!-- Font Awesome -->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
         <div class="flex items-center space-x-3">
@@ -132,8 +143,8 @@
             </span>
         </div>
 
-        <!-- Right Side Avatar Profile Menu (Hidden on Mobile) -->
-        <div class="hidden lg:flex items-center space-x-4">
+        <!-- Right Side Avatar Profile Menu -->
+        <div class="flex items-center space-x-2 sm:space-x-4">
             <!-- Theme Toggle Button -->
             <button onclick="toggleTheme()" 
                     class="w-8 h-8 rounded-lg bg-gray-950/20 hover:bg-gray-950/40 flex items-center justify-center transition border border-gray-800 focus:outline-none" 
@@ -141,22 +152,26 @@
                 <i class="fa-solid fa-sun text-amber-500" id="theme-toggle-icon"></i>
             </button>
 
-            <span class="text-sm font-medium text-gray-400" th:text="${user.name}">John Doe</span>
+            <span class="hidden sm:inline-block text-sm font-semibold user-name-label text-slate-800 dark:text-slate-100" th:text="${user.name}">John Doe</span>
 
-            <!-- Circle Profile Initials Avatar -->
+            <!-- Circle Profile Avatar -->
             <div class="relative">
                 <button onclick="toggleAvatarDropdown()" 
-                        class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 border border-indigo-400/20 flex items-center justify-center font-bold text-white shadow-lg focus:outline-none hover:scale-105 transition-transform"
-                        th:text="${#strings.isEmpty(user.name) ? 'U' : #strings.substring(user.name, 0, 1).toUpperCase()}">
-                    U
+                        class="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white/60 overflow-hidden flex items-center justify-center font-bold text-white shadow-lg focus:outline-none hover:scale-105 transition-transform bg-orange-500">
+                    <img th:if="${user.profilePictureUrl != null and !#strings.isEmpty(user.profilePictureUrl)}"
+                         th:src="${user.profilePictureUrl}" 
+                         alt="Avatar" 
+                         class="w-full h-full object-cover" />
+                    <span th:unless="${user.profilePictureUrl != null and !#strings.isEmpty(user.profilePictureUrl)}"
+                          th:text="${#strings.isEmpty(user.name) ? 'U' : #strings.substring(user.name, 0, 1).toUpperCase()}">U</span>
                 </button>
 
                 <!-- Dropdown Menu -->
-                <div id="avatar-dropdown" class="hidden absolute right-0 mt-2 w-48 rounded-xl bg-gray-900 border border-gray-800 shadow-2xl p-2 z-50 text-sm">
-                    <a th:href="@{/profile}" class="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-800 hover:text-white transition">
+                <div id="avatar-dropdown" class="hidden absolute right-0 mt-2 w-48 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-2xl p-2 z-50 text-sm">
+                    <a th:href="@{/profile}" class="flex items-center space-x-2 px-3 py-2 rounded-lg text-slate-800 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 transition">
                         <span class="w-5 text-center"><i class="fa-solid fa-user"></i></span> <span>View Profile</span>
                     </a>
-                    <button onclick="confirmLogout()" class="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-rose-950/30 hover:text-rose-400 transition w-full text-left">
+                    <button onclick="confirmLogout()" class="flex items-center space-x-2 px-3 py-2 rounded-lg text-slate-800 dark:text-zinc-200 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 transition w-full text-left">
                         <span class="w-5 text-center"><i class="fa-solid fa-right-from-bracket"></i></span> <span>Log Out</span>
                     </button>
                 </div>
@@ -167,6 +182,9 @@
 
     <!-- Script Actions Fragment -->
     <div th:fragment="navigationScripts">
+        <!-- Mobile Sidebar Backdrop Overlay -->
+        <div id="sidebar-backdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden lg:hidden"></div>
+
         <!-- Global Logout Confirmation Dialog -->
         <div id="logout-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-all duration-300">
             <div class="glass-card w-full max-w-sm rounded-2xl p-6 md:p-8 shadow-2xl border border-gray-200 dark:border-gray-800 text-center relative" onclick="event.stopPropagation()">
@@ -242,18 +260,29 @@
 
             function toggleSidebar() {
                 const sidebar = document.getElementById('sidebar-menu');
+                const backdrop = document.getElementById('sidebar-backdrop');
                 const hamburgerIcon = document.getElementById('hamburger-icon');
                 const crossIcon = document.getElementById('cross-icon');
                 
-                sidebar.classList.toggle('-translate-x-full');
-                
-                if (sidebar.classList.contains('-translate-x-full')) {
-                    hamburgerIcon.classList.remove('hidden');
-                    crossIcon.classList.add('hidden');
-                } else {
-                    hamburgerIcon.classList.add('hidden');
-                    crossIcon.classList.remove('hidden');
+                if (sidebar) {
+                    sidebar.classList.toggle('-translate-x-full');
+                    const isOpen = !sidebar.classList.contains('-translate-x-full');
+                    if (backdrop) {
+                        if (isOpen) {
+                            backdrop.classList.remove('hidden');
+                        } else {
+                            backdrop.classList.add('hidden');
+                        }
+                    }
+                    if (hamburgerIcon) hamburgerIcon.classList.toggle('hidden', isOpen);
+                    if (crossIcon) crossIcon.classList.toggle('hidden', !isOpen);
+                    document.body.style.overflow = isOpen ? 'hidden' : '';
                 }
+            }
+
+            function toggleAvatarDropdown() {
+                const dropdown = document.getElementById('avatar-dropdown');
+                dropdown.classList.toggle('hidden');
             }
 
             function toggleAvatarDropdown() {
@@ -276,7 +305,7 @@
 
     <!-- Theme Styles Fragment -->
     <th:block th:fragment="themeStyles">
-        <link rel="icon" type="image/png" href="https://res.cloudinary.com/dvb5mesnd/image/upload/v1788200216/RideMeshIcon-main_z7q9bk.png" />
+        <link rel="icon" type="image/png" href="https://res.cloudinary.com/dvb5mesnd/image/upload/v1792821669/RideMeshIcon-modified_hwnpel.png" />
         <style>
             :root {
                 --color-bg: #ffffff; /* pure solid white background */
@@ -391,22 +420,88 @@
             }
             
             /* Background colors for layout containers */
-            .bg-gray-900, .bg-gray-950, .bg-gray-900\/40, .bg-gray-900\/60, .bg-gray-950\/60, .bg-gray-900\/50, .bg-slate-50, .bg-slate-100 {
+            .bg-gray-900, .bg-gray-950, .bg-gray-850,
+            [class*="bg-gray-950"], [class*="bg-gray-900"],
+            .bg-slate-50, .bg-slate-100 {
                 background-color: var(--color-card-bg) !important;
                 color: var(--color-text) !important;
             }
-            .border-gray-900, .border-gray-950, .border-gray-800, .border-gray-850, .border-slate-100, .border-slate-200 {
+            .border-gray-900, .border-gray-950, .border-gray-800, .border-gray-850, .border-slate-100, .border-slate-200,
+            [class*="border-gray-950"], [class*="border-gray-900"], [class*="border-gray-850"] {
                 border-color: var(--color-border) !important;
             }
+
+            /* Light mode explicit pure white container & stepper overrides */
+            :root:not(.dark) [class*="bg-gray-950"],
+            :root:not(.dark) [class*="bg-gray-900"],
+            :root:not(.dark) [class*="bg-gray-850"] {
+                background-color: #ffffff !important;
+                border-color: #e2e8f0 !important;
+                color: #0f172a !important;
+                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
+            }
+
+            :root:not(.dark) .bg-gray-800 {
+                background-color: #f1f5f9 !important;
+                border-color: #cbd5e1 !important;
+                color: #64748b !important;
+            }
+            :root:not(.dark) .bg-gray-800 i {
+                color: #94a3b8 !important;
+            }
+
+            :root:not(.dark) .border-gray-900,
+            :root:not(.dark) .border-gray-950,
+            :root:not(.dark) .border-gray-800,
+            :root:not(.dark) .border-gray-850 {
+                border-color: #e2e8f0 !important;
+            }
+
+            :root:not(.dark) .text-gray-100,
+            :root:not(.dark) .text-gray-200,
+            :root:not(.dark) .text-gray-300 {
+                color: #1e293b !important;
+            }
+            :root:not(.dark) .text-gray-400,
+            :root:not(.dark) .text-gray-500 {
+                color: #64748b !important;
+            }
             
+            /* Ensure sidebar is pinned to viewport, non-scrollable, and entirely visible in one frame */
+            @media (max-width: 1023px) {
+                #sidebar-menu {
+                    position: fixed !important;
+                    top: 0 !important;
+                    bottom: 0 !important;
+                    left: 0 !important;
+                    height: 100vh !important;
+                    max-height: 100vh !important;
+                    z-index: 50 !important;
+                    overflow: hidden !important;
+                }
+            }
+            @media (min-width: 1024px) {
+                #sidebar-menu {
+                    height: 100vh !important;
+                    max-height: 100vh !important;
+                    position: sticky !important;
+                    top: 0 !important;
+                    overflow: hidden !important;
+                }
+            }
+
             /* Target sidebar navigation and footer hovers directly */
             #sidebar-menu nav a:hover,
+            #sidebar-menu .border-t a:hover,
+            #sidebar-menu .border-t button:hover,
             #sidebar-menu .p-4 a:hover,
             #sidebar-menu .p-4 button:hover {
                 background-color: var(--color-primary-hover) !important;
                 color: #ffffff !important;
             }
             #sidebar-menu nav a:hover *,
+            #sidebar-menu .border-t a:hover *,
+            #sidebar-menu .border-t button:hover *,
             #sidebar-menu .p-4 a:hover *,
             #sidebar-menu .p-4 button:hover * {
                 color: #ffffff !important;
@@ -457,13 +552,46 @@
             }
             
             /* Table headers & cells */
+            table {
+                border-collapse: separate !important;
+                border-spacing: 0 !important;
+                width: 100% !important;
+            }
             th {
                 background-color: var(--color-input-border) !important;
                 color: var(--color-text) !important;
+                padding: 12px 18px !important;
+                font-size: 0.75rem !important;
+                font-weight: 700 !important;
+                letter-spacing: 0.05em !important;
+                text-transform: uppercase !important;
+                vertical-align: middle !important;
+            }
+            th:first-child {
+                border-top-left-radius: 8px !important;
+                border-bottom-left-radius: 8px !important;
+                padding-left: 20px !important;
+            }
+            th:last-child {
+                border-top-right-radius: 8px !important;
+                border-bottom-right-radius: 8px !important;
+                padding-right: 20px !important;
             }
             td {
-                border-bottom-color: var(--color-border) !important;
+                border-bottom: 1px solid var(--color-border) !important;
                 color: var(--color-text) !important;
+                padding: 14px 18px !important;
+                vertical-align: middle !important;
+            }
+            td:first-child {
+                padding-left: 20px !important;
+            }
+            td:last-child {
+                padding-right: 20px !important;
+            }
+            td[class*="py-8"] {
+                padding-top: 2.5rem !important;
+                padding-bottom: 2.5rem !important;
             }
             
             /* Radar & decorative shapes opacity */
@@ -583,8 +711,37 @@
                 color: var(--color-text) !important;
             }
 
-            /* Force header / top navbars to solid orange with white text */
-            header, 
+            /* Authenticated Header Navbar styling for light and dark modes */
+            header {
+                background-color: var(--color-card-bg) !important;
+                background-image: none !important;
+                border-bottom: 1px solid var(--color-border) !important;
+                color: var(--color-text) !important;
+            }
+            :root:not(.dark) header {
+                background-color: #ffffff !important;
+                border-bottom: 1px solid #e2e8f0 !important;
+                color: #0f172a !important;
+            }
+            :root:not(.dark) header .user-name-label,
+            :root:not(.dark) header span.user-name-label,
+            :root:not(.dark) .user-name-label {
+                color: #0f172a !important;
+                font-weight: 600 !important;
+            }
+            :root.dark header {
+                background-color: #121212 !important;
+                border-bottom: 1px solid #27272a !important;
+                color: #f8fafc !important;
+            }
+            :root.dark header .user-name-label,
+            :root.dark header span.user-name-label,
+            :root.dark .user-name-label {
+                color: #f8fafc !important;
+                font-weight: 600 !important;
+            }
+
+            /* Public nav.glass-card top navbars (e.g. login/signup) */
             nav.glass-card {
                 background-color: var(--color-primary) !important;
                 background-image: none !important;
@@ -592,89 +749,133 @@
                 color: #ffffff !important;
             }
 
-            /* Ensure all links, text, and icons in orange navbar are white by default */
-            header *, 
-            nav.glass-card * {
+            /* Turn logo text to white in orange navbar */
+            nav.glass-card span.text-xl,
+            nav.glass-card .brand-link span {
                 color: #ffffff !important;
+                -webkit-text-fill-color: #ffffff !important;
             }
 
-            /* Enforce white color for navbar text links (Sign In, Home, etc.), excluding buttons/dropdowns/primary bg buttons */
-            header a:not(#avatar-dropdown a):not(.bg-white):not([class*="bg-purple"]):not([class*="bg-indigo"]),
-            nav.glass-card a:not(#avatar-dropdown a):not(.bg-white):not([class*="bg-purple"]):not([class*="bg-indigo"]) {
+            /* Regular navbar text and link items default to white */
+            nav.glass-card a:not(.glow-btn):not([class*="bg-purple"]):not([class*="bg-indigo"]):not(.nav-action-btn):not(#avatar-dropdown a),
+            nav.glass-card span:not(.glow-btn):not([class*="bg-purple"]):not([class*="bg-indigo"]):not(#avatar-dropdown span) {
                 color: #ffffff !important;
+                -webkit-text-fill-color: #ffffff !important;
             }
-            header a:not(#avatar-dropdown a):not(.bg-white):not([class*="bg-purple"]):not([class*="bg-indigo"]) *,
-            nav.glass-card a:not(#avatar-dropdown a):not(.bg-white):not([class*="bg-purple"]):not([class*="bg-indigo"]) * {
-                color: #ffffff !important;
+
+            /* Avatar Dropdown Menu explicitly styled for light and dark modes */
+            #avatar-dropdown {
+                background-color: var(--color-card-bg) !important;
+                border: 1px solid var(--color-card-border) !important;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+            }
+            :root:not(.dark) #avatar-dropdown,
+            :root:not(.dark) #avatar-dropdown * {
+                color: #0f172a !important;
+            }
+            :root:not(.dark) #avatar-dropdown a:hover {
+                background-color: #f1f5f9 !important;
+                color: #f97316 !important;
+            }
+            :root:not(.dark) #avatar-dropdown a:hover * {
+                color: #f97316 !important;
+            }
+            :root:not(.dark) #avatar-dropdown button:hover {
+                background-color: #fee2e2 !important;
+                color: #dc2626 !important;
+            }
+            :root:not(.dark) #avatar-dropdown button:hover * {
+                color: #dc2626 !important;
+            }
+            :root.dark #avatar-dropdown,
+            :root.dark #avatar-dropdown * {
+                color: #f3f4f6 !important;
+            }
+            :root.dark #avatar-dropdown a:hover {
+                background-color: #27272a !important;
+                color: #f97316 !important;
+            }
+            :root.dark #avatar-dropdown a:hover * {
+                color: #f97316 !important;
+            }
+            :root.dark #avatar-dropdown button:hover {
+                background-color: rgba(239, 68, 68, 0.2) !important;
+                color: #f87171 !important;
+            }
+            :root.dark #avatar-dropdown button:hover * {
+                color: #f87171 !important;
             }
 
             /* Logo image styling */
-            header img,
             nav.glass-card img,
             #sidebar-menu img {
                 background: transparent !important;
                 border-radius: 0.5rem;
             }
 
-            /* Turn logo text to white in orange navbar */
-            header span.text-xl,
-            nav.glass-card span.text-xl {
-                color: #ffffff !important;
-                -webkit-text-fill-color: #ffffff !important;
-            }
-
-            /* Buttons inside the orange navbar should be white with orange text */
-            header .bg-purple-600,
-            nav.glass-card .bg-purple-600,
-            header .bg-indigo-600,
-            nav.glass-card .bg-indigo-600,
-            header a.bg-purple-600,
+            /* Action Buttons inside public orange navbar (Sign Up, Sign In pill buttons) - White pill with bold orange text */
+            nav.glass-card a.glow-btn,
+            nav.glass-card a.nav-action-btn,
             nav.glass-card a.bg-purple-600,
-            header a.bg-indigo-600,
             nav.glass-card a.bg-indigo-600,
-            header button[type="submit"],
-            nav.glass-card button[type="submit"] {
+            nav.glass-card a[href*="signup"],
+            nav.glass-card a[href*="login"].glow-btn,
+            nav.glass-card button[type="submit"].nav-action-btn {
                 background-color: #ffffff !important;
-                color: var(--color-primary) !important;
+                background-image: none !important;
+                color: #ea580c !important;
+                -webkit-text-fill-color: #ea580c !important;
+                font-weight: 700 !important;
+                border: 1px solid #ffffff !important;
+                box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.12) !important;
             }
-            header .bg-purple-600 *,
-            nav.glass-card .bg-purple-600 *,
-            header .bg-indigo-600 *,
-            nav.glass-card .bg-indigo-600 *,
-            header a.bg-purple-600 *,
+            nav.glass-card a.glow-btn *,
+            nav.glass-card a.nav-action-btn *,
             nav.glass-card a.bg-purple-600 *,
-            header a.bg-indigo-600 *,
-            nav.glass-card a.bg-indigo-600 * {
-                color: var(--color-primary) !important;
+            nav.glass-card a.bg-indigo-600 *,
+            nav.glass-card a[href*="signup"] *,
+            nav.glass-card a[href*="login"].glow-btn * {
+                color: #ea580c !important;
+                -webkit-text-fill-color: #ea580c !important;
+                font-weight: 700 !important;
+            }
+            nav.glass-card a.glow-btn:hover,
+            nav.glass-card a.nav-action-btn:hover,
+            nav.glass-card a.bg-purple-600:hover,
+            nav.glass-card a.bg-indigo-600:hover,
+            nav.glass-card a[href*="signup"]:hover {
+                background-color: #fff7ed !important;
+                color: #c2410c !important;
+                -webkit-text-fill-color: #c2410c !important;
             }
 
             /* Style Avatar rounded button in navbar */
-            header .rounded-full,
+            header .rounded-full {
+                background-color: rgba(249, 115, 22, 0.15) !important;
+                border: 2px solid #ffffff !important;
+            }
             nav.glass-card .rounded-full {
                 background-color: rgba(255, 255, 255, 0.25) !important;
                 background-image: none !important;
                 border: 2px solid #ffffff !important;
                 color: #ffffff !important;
             }
-            header .rounded-full *,
             nav.glass-card .rounded-full * {
                 color: #ffffff !important;
             }
 
-            /* Theme toggle button styling overrides inside orange navbars */
-            header button[onclick="toggleTheme()"],
+            /* Theme toggle button styling overrides */
             nav.glass-card button[onclick="toggleTheme()"],
-            header #theme-toggle-btn,
             nav.glass-card #theme-toggle-btn {
                 background-color: #ffffff !important;
                 background-image: none !important;
-                border-color: #ffffff !important;
+                border: 1px solid #ffffff !important;
+                box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.1) !important;
             }
-            header button[onclick="toggleTheme()"] *,
             nav.glass-card button[onclick="toggleTheme()"] *,
-            header #theme-toggle-icon,
             nav.glass-card #theme-toggle-icon {
-                color: var(--color-primary) !important; /* Force solid orange logo on toggle icon */
+                color: #ea580c !important;
+                -webkit-text-fill-color: #ea580c !important;
             }
 
             /* Hide scrollbars globally */
@@ -704,7 +905,7 @@
         <script>
             // Inline theme initialization to prevent flash of unstyled content
             (function() {
-                const theme = localStorage.getItem('theme') || 'dark';
+                const theme = localStorage.getItem('theme') || 'light';
                 if (theme === 'dark') {
                     document.documentElement.classList.add('dark');
                 } else {

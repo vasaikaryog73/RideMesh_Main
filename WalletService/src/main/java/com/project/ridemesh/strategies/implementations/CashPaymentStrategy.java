@@ -18,14 +18,7 @@ public class CashPaymentStrategy implements PaymentStrategy {
 
     @Override
     public void processPayment(Payment payment) {
-        double paymentCommission = payment.getAmount() * PLATFORM_FEE;
-
-        walletService.subtractMoneyFromWallet(payment.getDriverId(),
-                paymentCommission,
-                null, // Cash payments do not have external transaction IDs
-                payment.getRideId(),
-                TransactionMethod.RIDE);
-
+        // Cash payment confirmed directly between rider and driver; no wallet balance increase/decrease on either side
         payment.setPaymentStatus(PaymentStatus.CONFIRMED);
     }
 }

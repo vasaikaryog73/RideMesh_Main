@@ -34,8 +34,13 @@ public class RiderServiceImpl implements RiderService {
 
     @Override
     public DriverDto rateDriver(Long rideId, Double rating) {
+        return rateDriver(rideId, rating, null);
+    }
+
+    @Override
+    public DriverDto rateDriver(Long rideId, Double rating, Long driverId) {
         Rider rider = getCurrentRider();
-        return ratingManagementService.rateDriver(rideId, rider, rating);
+        return ratingManagementService.rateDriver(rideId, rider, rating, driverId);
     }
 
     @Override

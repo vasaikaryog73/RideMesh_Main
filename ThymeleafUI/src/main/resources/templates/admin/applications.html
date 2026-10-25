@@ -9,8 +9,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            background-color: #0b0f19;
-            color: #f3f4f6;
+            background-color: var(--color-bg, #ffffff);
+            color: var(--color-text, #0f172a);
             font-family: 'Inter', sans-serif;
         }
         .glass-card {
@@ -19,17 +19,19 @@
             border: 1px solid rgba(255, 255, 255, 0.06);
         }
     </style>
+    <!-- Include Theme Styles in head for instant theme rendering without flicker -->
+    <th:block th:replace="~{fragments/navigation :: themeStyles}"></th:block>
 </head>
-<body class="min-h-screen flex">
+<body class="min-h-screen flex flex-col lg:flex-row w-full overflow-x-hidden">
 
     <!-- Sidebar fragment injection -->
     <div th:replace="~{fragments/navigation :: sidebar('applications', ${currentUser})}"></div>
 
-    <div class="flex-grow flex flex-col min-h-screen">
+    <div class="flex-1 flex flex-col min-h-screen w-full min-w-0">
         <!-- Top Navbar fragment injection -->
         <header th:replace="~{fragments/navigation :: navbar(${currentUser})}"></header>
 
-        <main class="flex-grow p-8 space-y-6 relative overflow-hidden">
+        <main class="flex-grow p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 relative overflow-hidden">
             <div class="absolute -top-40 -left-40 w-96 h-96 bg-purple-600 rounded-full filter blur-3xl opacity-10 animate-pulse"></div>
 
             <!-- Header Panel -->
@@ -69,7 +71,7 @@
                     <div class="flex justify-between items-start border-b border-gray-950 pb-3">
                         <div>
                             <h4 class="text-sm font-bold text-white" th:text="${app.riderName}">John Doe</h4>
-                            <p class="text-[10px] text-gray-500" th:text="'User ID: #' + ${app.userId}">User ID: #5</p>
+                            <p class="text-[10px] text-gray-500 font-mono" th:text="'App ID: ' + ${app.id != null ? #numbers.formatInteger(app.id, 5) : '00000'} + ' • User ID: ' + ${app.userId != null ? #numbers.formatInteger(app.userId, 5) : '00000'}">App ID: 00001 • User ID: 00005</p>
                         </div>
                         <span th:class="${app.status == 'PENDING' ? 'px-2 py-0.5 rounded bg-amber-950/50 text-amber-400 border border-amber-500/20 font-semibold uppercase text-[9px]' : (app.status == 'APPROVED' ? 'px-2 py-0.5 rounded bg-emerald-950/50 text-emerald-400 border border-emerald-500/20 font-semibold uppercase text-[9px]' : 'px-2 py-0.5 rounded bg-rose-950/50 text-rose-400 border border-rose-500/20 font-semibold uppercase text-[9px]')}"
                               th:text="${app.status}">
@@ -100,8 +102,8 @@
                             <span class="text-white font-medium font-semibold" th:text="${app.identityDocType != null ? app.identityDocType : 'Proof of Identity'}">Aadhar Card</span>
                         </div>
                         <div>
-                            <span class="block text-[10px] text-gray-500">Vehicle Numeric ID</span>
-                            <span class="text-white font-medium font-mono" th:text="${app.vehicleId}">12345</span>
+                            <span class="block text-[10px] text-gray-500">Vehicle Number</span>
+                            <span class="text-white font-medium font-mono" th:text="${app.vehicleId}">MH 12 AB 1234</span>
                         </div>
                         <div class="col-span-2 border-t border-gray-900/60 pt-2">
                             <span class="block text-[10px] text-gray-500">Driver License Number</span>
@@ -149,12 +151,12 @@
                         </button>
                         
                         <div class="flex space-x-3 animate-fade-in" th:if="${app.status == 'PENDING'}">
-                            <form th:action="@{/admin/applications/{id}/approve(id=${app.id})}" method="POST" onsubmit="return showNotImplementedModal(event)" class="flex-grow">
+                            <form th:action="@{/admin/applications/{id}/approve(id=${app.id})}" method="POST" class="flex-grow">
                                 <button type="submit" class="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition shadow-md">
                                     Approve Request
                                 </button>
                             </form>
-                            <form th:action="@{/admin/applications/{id}/reject(id=${app.id})}" method="POST" onsubmit="return showNotImplementedModal(event)" class="flex-grow">
+                            <form th:action="@{/admin/applications/{id}/reject(id=${app.id})}" method="POST" class="flex-grow">
                                 <button type="submit" class="w-full py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition shadow-md">
                                     Reject Request
                                 </button>

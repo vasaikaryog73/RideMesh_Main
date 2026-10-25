@@ -11,4 +11,8 @@ public interface RiderRideService {
     Page<RideDto> getAllMyRides(Long riderId, Pageable pageable);
     RideDto completeRide(Long rideId, Long riderId);
     RideDto getActiveRide(Long riderId);
+    void cancelRideRequest(Long rideRequestId, Long riderId);
+    RideDto confirmCashPaid(Long rideId, Long riderId);
+    RideDto finalizeUpiPayment(Long rideId);
+    RideDto rateRide(Long rideId, Double rating);
 }

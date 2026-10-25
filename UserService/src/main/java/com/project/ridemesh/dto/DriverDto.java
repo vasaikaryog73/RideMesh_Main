@@ -5,7 +5,7 @@ public class DriverDto {
     private UserDto user;
     private Double rating;
     private Boolean available;
-    private Long vehicleId;
+    private String vehicleId;
     private String vehicleType;
     private String phoneNumber;
     private String state;
@@ -15,11 +15,12 @@ public class DriverDto {
     private String vehiclePhotos;
     private String identityPhotoUrl;
     private String identityDocType;
+    private Long reportsCount = 0L;
 
     public DriverDto() {
     }
 
-    public DriverDto(Long id, UserDto user, Double rating, Boolean available, Long vehicleId) {
+    public DriverDto(Long id, UserDto user, Double rating, Boolean available, String vehicleId) {
         this.id = id;
         this.user = user;
         this.rating = rating;
@@ -27,7 +28,7 @@ public class DriverDto {
         this.vehicleId = vehicleId;
     }
 
-    public DriverDto(Long id, UserDto user, Double rating, Boolean available, Long vehicleId, String vehicleType, String phoneNumber, String state, String district) {
+    public DriverDto(Long id, UserDto user, Double rating, Boolean available, String vehicleId, String vehicleType, String phoneNumber, String state, String district) {
         this.id = id;
         this.user = user;
         this.rating = rating;
@@ -71,11 +72,11 @@ public class DriverDto {
         this.available = available;
     }
 
-    public Long getVehicleId() {
+    public String getVehicleId() {
         return vehicleId;
     }
 
-    public void setVehicleId(Long vehicleId) {
+    public void setVehicleId(String vehicleId) {
         this.vehicleId = vehicleId;
     }
 
@@ -149,5 +150,13 @@ public class DriverDto {
 
     public void setIdentityDocType(String identityDocType) {
         this.identityDocType = identityDocType;
+    }
+
+    public Long getReportsCount() {
+        return reportsCount;
+    }
+
+    public void setReportsCount(Long reportsCount) {
+        this.reportsCount = reportsCount;
     }
 }

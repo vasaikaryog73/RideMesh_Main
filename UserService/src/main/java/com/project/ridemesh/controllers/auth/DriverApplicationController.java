@@ -36,6 +36,7 @@ public class DriverApplicationController {
     private final DriverApplicationRepository applicationRepository;
     private final DriverRepository driverRepository;
     private final UserRepository userRepository;
+    private final com.project.ridemesh.repositories.DriverReportRepository driverReportRepository;
     private final ModelMapper modelMapper;
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
@@ -44,6 +45,7 @@ public class DriverApplicationController {
     public DriverApplicationController(DriverApplicationRepository applicationRepository,
                                        DriverRepository driverRepository,
                                        UserRepository userRepository,
+                                       com.project.ridemesh.repositories.DriverReportRepository driverReportRepository,
                                        ModelMapper modelMapper,
                                        KafkaTemplate<String, String> kafkaTemplate,
                                        ObjectMapper objectMapper,
@@ -51,6 +53,7 @@ public class DriverApplicationController {
         this.applicationRepository = applicationRepository;
         this.driverRepository = driverRepository;
         this.userRepository = userRepository;
+        this.driverReportRepository = driverReportRepository;
         this.modelMapper = modelMapper;
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper;
@@ -62,6 +65,24 @@ public class DriverApplicationController {
     public ResponseEntity<DriverApplicationDto> submitApplication(@RequestBody DriverApplicationDto dto) {
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         
+        if (currentUser.getPhoneNumber() != null && !currentUser.getPhoneNumber().trim().isEmpty()) {
+            String registeredDigits = currentUser.getPhoneNumber().replaceAll("[^0-9]", "");
+            String submittedDigits = dto.getPhoneNumber() != null ? dto.getPhoneNumber().replaceAll("[^0-9]", "") : "";
+            boolean matches = false;
+            if (registeredDigits.length() >= 10 && submittedDigits.length() >= 10) {
+                String reg10 = registeredDigits.substring(registeredDigits.length() - 10);
+                String sub10 = submittedDigits.substring(submittedDigits.length() - 10);
+                matches = reg10.equals(sub10);
+            } else {
+                matches = registeredDigits.equals(submittedDigits);
+            }
+            if (!matches) {
+                throw new com.project.ridemesh.exceptions.RuntimeConflictException(
+                    "Mobile number entered (" + dto.getPhoneNumber() + ") must match your registered phone number (" + currentUser.getPhoneNumber() + ")."
+                );
+            }
+        }
+
         DriverApplication app = new DriverApplication();
         app.setUserId(currentUser.getId());
         app.setRiderName(currentUser.getName());
@@ -97,6 +118,23 @@ public class DriverApplicationController {
         return ResponseEntity.ok(modelMapper.map(saved, DriverApplicationDto.class));
     }
 
+    @GetMapping("/driver-applications/my-application")
+    public ResponseEntity<DriverApplicationDto> getMyApplication(@RequestParam(required = false) Long userId) {
+        Long targetUserId = userId;
+        if (targetUserId == null) {
+            org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() instanceof User) {
+                targetUserId = ((User) auth.getPrincipal()).getId();
+            }
+        }
+        if (targetUserId == null) {
+            return ResponseEntity.ok(new DriverApplicationDto());
+        }
+        return applicationRepository.findTopByUserIdOrderByIdDesc(targetUserId)
+                .map(app -> ResponseEntity.ok(modelMapper.map(app, DriverApplicationDto.class)))
+                .orElse(ResponseEntity.ok(new DriverApplicationDto()));
+    }
+
     @GetMapping("/driver-applications")
     @Secured("ROLE_ADMIN")
     public ResponseEntity<List<DriverApplicationDto>> getApplications() {
@@ -117,7 +155,7 @@ public class DriverApplicationController {
 
         // Automatically onboard the driver!
         OnboardDriverDto onboardDto = new OnboardDriverDto();
-        onboardDto.setVehicleId(Long.parseLong(app.getVehicleId()));
+        onboardDto.setVehicleId(app.getVehicleId());
         onboardDto.setVehicleType(app.getVehicleType());
         onboardDto.setPhoneNumber(app.getPhoneNumber());
         onboardDto.setState(app.getState());
@@ -178,6 +216,8 @@ public class DriverApplicationController {
                                 dto.setIdentityPhotoUrl(app.getIdentityPhotoUrl());
                                 dto.setIdentityDocType(app.getIdentityDocType());
                             });
+                    long reportCount = driverReportRepository.countByDriverId(driver.getId());
+                    dto.setReportsCount(reportCount);
                     return dto;
                 })
                 .collect(Collectors.toList());

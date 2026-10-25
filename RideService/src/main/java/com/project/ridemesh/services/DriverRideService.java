@@ -16,4 +16,6 @@ public interface DriverRideService {
     List<RideRequestDto> getPendingRidesNearDriver(Long driverId);
     RideDto completeRide(Long rideId, Long driverId);
     RideDto getActiveRide(Long driverId);
+    void declineRide(Long rideRequestId, Long driverId);
+    RideDto confirmCashReceived(Long rideId, Long driverId);
 }

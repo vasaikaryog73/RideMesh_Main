@@ -1,7 +1,13 @@
-# RideMesh - Phase 2
+# RideMesh - Phase 3
 
 ## Project Overview
-**RideMesh** is an event-driven, distributed cab-booking platform decomposed into independent Spring Boot microservices, communicating via **Apache Kafka** event streaming and REST APIs, coordinated by **Netflix Eureka** service discovery and protected by a central **Spring Cloud API Gateway**.
+**RideMesh** is an enterprise-grade, event-driven, distributed cab-booking platform decomposed into independent Spring Boot microservices. It features:
+- **Asynchronous Event-Driven Architecture** powered by **Apache Kafka** event streaming.
+- **Service Discovery & Client-Side Load Balancing** coordinated by **Netflix Eureka**.
+- **Edge Routing & JWT Security** managed by **Spring Cloud API Gateway**.
+- **Observability & Health Monitoring** using **Spring Boot 3 Actuator**, **Micrometer Prometheus registry**, **Prometheus**, and custom **Grafana** dashboards.
+- **Full Containerization & Cloud-Native Orchestration** with optimized multi-stage **Dockerfiles**, **Docker Compose**, and **Kubernetes** Deployment & Service manifests.
+- **Interactive Web Portal** built with **Thymeleaf**, responsive Tailwind styling, Leaflet OpenStreetMap geocoding, and Razorpay payment gateway integration.
 
 ## Team Members
 **A042 - Ritish Kumar - 70612500068** <br />
@@ -13,7 +19,7 @@
 
 ---
 
-## 1. Microservices Breakdown
+## 1. Microservices Breakdown & Ports
 
 | Service Name | Port | Database | Primary Responsibility |
 |---|---|---|---|
@@ -22,15 +28,52 @@
 | **UserService** | `8081` | `ridemesh_user_db` (PostgreSQL) | Authentication, JWT issuing, Rider/Driver profiles & onboarding |
 | **RideService** | `8082` | `ridemesh_ride_db` (PostgreSQL) | Ride requests, matching algorithm, OTP verification, ride lifecycle |
 | **WalletService** | `8083` | `ridemesh_wallet_db` (PostgreSQL) | Rider/Driver balances, Razorpay payment gateway integration, transaction ledgers |
-| **NotifyService** | `8084` | N/A | Asynchronous Kafka consumer for email and notification alerts |
-| **ThymeleafUI** | `8085` | N/A | Responsive user portal (Rider dashboard, Driver terminal, Wallet) |
+| **NotifyService** | `8084` | `notify_db` (PostgreSQL) | Asynchronous Kafka consumer for email and notification alerts |
+| **ThymeleafUI** | `8085` | N/A | Interactive user portal (Rider dashboard, Driver terminal, Wallet) |
+| **Prometheus** | `9090` | N/A | Time-series metrics scraper for microservices Actuator endpoints |
+| **Grafana** | `3000` | N/A | Real-time observability dashboard for JVM, throughput, and error rates |
 
 ---
 
-## 2. Event-Driven Communication via Apache Kafka
+## 2. Key Platform Features & Latest Updates
+
+### 📍 Full Address Precision & Interactive History
+- **Complete Address Capture**: Captures and persists entire detailed addresses (e.g., `"Cooper Hospital, Gulmohar Road, Vile Parle West, K/W Ward, Mumbai Zone 3, Mumbai, Mumbai Suburban District, Maharashtra, 400057, India"`) for both pickup and dropoff across booking, requests, and ride history tables.
+- **Double-Click Inline Copying**: Address cells in Rider History (`/rider/history`) and Driver Completed Rides (`/driver/history`) truncate cleanly in table view, but on **double-click** (`ondblclick`), seamlessly transform into an editable, pre-selected textbox allowing instant `Ctrl+A` and `Ctrl+C` copying of the complete unabbreviated address string.
+- **Universal History Search Bars**: Filter ride tables instantly by Ride ID, Driver/Rider name, pickup address, or dropoff address.
+
+### 🛡️ Driver Incident Reporting & Moderation
+- **Rider Incident Reports**: Riders can report drivers from their history table or active ride with a compulsory reason and media/photo evidence uploaded via Cloudinary.
+- **Automated Acknowledgment**: Instant confirmation email dispatched to rider upon receipt.
+- **Admin Report Applications (`/admin/reports`)**: Admin dashboard to review complaints and compulsory evidence, send official notices to drivers, or suspend driver accounts directly.
+
+### 💡 User Feedback, Suggestions, Complaints & Bug Reporting
+- **User Profile Modal (`/profile`)**: Accessible to both Riders and Drivers via a modern, fixed-height, scrollable modal:
+  - **Feedback**: Dynamic sub-type selection for *Positive Review* or *Negative Review*, with optional media attachment.
+  - **Suggestions**: Direct idea submission box with optional mockup/image attachments.
+  - **Complaints**: Contextual classification for *Against Driver* or *Against Platform*.
+  - **Bug Reports**: Compulsory media attachment (screenshot/screen recording) with submit button dynamically locked/grayed out until evidence is attached.
+- **Admin Improvement Console (`/admin/improvement-console`)**:
+  - Filter tabs for *All Items*, *Feedback*, *Suggestions*, *Complaints*, and *Bug Reports*.
+  - Real-time search across sender name, email, ID, category, and content.
+  - Interactive **Email Reply Modal** allowing administrators to dispatch official responses directly to the user's registered email via Kafka notifications.
+
+### 🎚️ Driver Availability Switch & Terminal Auto-Shield
+- **Duty Toggle Switch**: Interactive, persistent toggle button on the driver profile (`/profile`) switching between **Available** and **Unavailable**.
+- **Matchmaking Exclusion**: Unavailable drivers are immediately blocked from matchmaking, preventing incoming requests on their terminal and directing them to toggle back to Available when ready.
+
+---
+
+## 3. Event-Driven Communication via Apache Kafka
 
 ![RideMesh Microservices Architecture & Event Flow](https://res.cloudinary.com/dvb5mesnd/image/upload/v1788312748/Screenshot_2026-09-02_070034_jfolav.png)
 
+Key Kafka Topics:
+- `ride.requested`: Published by `RideService` when rider initiates a booking.
+- `ride.confirmed`: Published when driver accepts a ride request.
+- `ride.started`: Published after OTP verification.
+- `ride.completed`: Triggers fare deduction in `WalletService` and driver payout.
+- `notification.email`: Consumed by `NotifyService` to dispatch automated SMTP email notifications.
 
 ### Kafka Setup
 
@@ -43,15 +86,18 @@ docker run -d --name kafka -p 9092:9092 apache/kafka:latest
 
 ---
 
-## 3. Database Setup (PostgreSQL)
+## 3. Observability, Metrics & Grafana
 
-To set up the distinct databases, execute the following SQL commands in pgAdmin or psql:
+Every microservice exposes standardized Actuator endpoints for health checks, Kubernetes probes, and Prometheus metrics:
+- `/actuator/health`: System health check (Database, Kafka, Disk Space)
+- `/actuator/info`: Service metadata and runtime info
+- `/actuator/prometheus`: Micrometer Prometheus metrics feed
 
-```sql
-CREATE DATABASE ridemesh_user_db;
-CREATE DATABASE ridemesh_ride_db;
-CREATE DATABASE ridemesh_wallet_db;
-```
+### Accessing Dashboards:
+- **Prometheus UI**: [http://localhost:9090](http://localhost:9090)
+- **Grafana UI**: [http://localhost:3000](http://localhost:3000) (Default login: `admin` / `admin`)
+  - Auto-provisioned datasource: **Prometheus**
+  - Pre-configured dashboard: **RideMesh - Microservices Overview** (JVM Heap, Process CPU, Request Throughput, Thread count)
 
 ---
 
@@ -65,52 +111,62 @@ Each microservice exposes interactive Swagger UI documentation for testing and v
 
 ---
 
-## 5. API Endpoints Reference
+## 5. Deployment Options
 
-### 🔐 Auth APIs 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/auth/signup` | POST | Register a new user |
-| `/auth/login` | POST | Authenticate user and receive JWT tokens |
-| `/auth/refresh` | POST | Refresh an expired access token |
-| `/auth/onboardDriver/{userId}` | POST | Onboard registered user as a verified driver |
+### Option A: Run with Docker Compose (Recommended)
+Launch the entire platform including databases, Kafka, all 7 microservices, Prometheus, and Grafana with one command:
 
-### 🚖 Driver APIs 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/driver/getMyProfile` | GET | Retrieve authenticated driver's profile |
-| `/driver/getMyRides` | GET | View driver's trip history |
-| `/driver/pendingRides` | GET | List available incoming ride requests |
-| `/driver/acceptRide/{rideRequestId}` | POST | Accept a pending ride request |
-| `/driver/startRide/{rideId}` | POST | Start trip using rider's 4-digit OTP |
-| `/driver/endRide/{rideId}` | POST | Complete ride and trigger wallet payout |
-| `/driver/cancelRide/{rideId}` | POST | Cancel an active ride |
-| `/driver/rateRider/{rideId}` | POST | Rate rider after trip |
+```bash
+docker-compose up --build -d
+```
 
-### 👤 Rider APIs 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/rider/getMyProfile` | GET | Retrieve authenticated rider's profile |
-| `/rider/getMyRides` | GET | View rider's trip history |
-| `/rider/requestRide` | POST | Create a new cab booking request |
-| `/rider/cancelRide/{rideId}` | POST | Cancel a pending/active ride request |
-| `/rider/rateDriver/{rideId}` | POST | Rate driver after trip |
+To view logs:
+```bash
+docker-compose logs -f
+```
 
-### 💳 Wallet APIs 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/wallet/balance` | GET | Check current wallet balance |
-| `/wallet/create-order` | POST | Initiate Razorpay deposit order |
-| `/webhooks/razorpay` | POST | Razorpay webhook listener for instant credit |
+To stop:
+```bash
+docker-compose down
+```
 
----
+### Option B: Deploy to Kubernetes
+Kubernetes manifests are located under `k8s/` and include complete Deployments, Services, ConfigMaps, Secrets, PVCs, and Liveness/Readiness probes:
 
-## 6. How to Run the Platform
+```bash
+# 1. Create Namespace
+kubectl apply -f k8s/00-namespace.yaml
 
-### Step 1: Start Infrastructure
-Ensure **PostgreSQL** (`localhost:5432`) and **Apache Kafka** (`localhost:9092`) are running.
+# 2. ConfigMaps and Secrets
+kubectl apply -f k8s/01-configmap-secrets.yaml
 
-### Step 2: Start Microservices (in recommended order)
+# 3. Infrastructure (PostgreSQL & Kafka)
+kubectl apply -f k8s/02-postgres.yaml
+kubectl apply -f k8s/03-kafka.yaml
+
+# 4. Service Discovery & Gateway
+kubectl apply -f k8s/04-eureka.yaml
+kubectl apply -f k8s/05-apigateway.yaml
+
+# 5. Core Microservices
+kubectl apply -f k8s/06-user-service.yaml
+kubectl apply -f k8s/07-ride-service.yaml
+kubectl apply -f k8s/08-wallet-service.yaml
+kubectl apply -f k8s/09-notify-service.yaml
+
+# 6. UI & Monitoring
+kubectl apply -f k8s/10-thymeleaf-ui.yaml
+kubectl apply -f k8s/11-monitoring.yaml
+```
+
+Accessing the application in Kubernetes:
+- **Thymeleaf UI**: `http://<NODE_IP>:30085`
+- **Grafana**: `http://<NODE_IP>:30300`
+- **Prometheus**: `http://<NODE_IP>:30090`
+
+### Option C: Run Locally via Maven
+Ensure PostgreSQL (`localhost:5432`) and Apache Kafka (`localhost:9092`) are running, then start the services in order:
+
 ```bash
 # 1. Service Discovery
 cd eureka-server && ..\mvnw.cmd spring-boot:run
@@ -128,10 +184,14 @@ cd NotifyService && ..\mvnw.cmd spring-boot:run
 cd ThymeleafUI && ..\mvnw.cmd spring-boot:run
 ```
 
-### Step 3: Access Application
+---
+
+## 6. Access Points
 - **RideMesh App**: [http://localhost:8085](http://localhost:8085)
 - **Eureka Registry Dashboard**: [http://localhost:8761](http://localhost:8761)
-
+- **API Gateway**: [http://localhost:8089](http://localhost:8089)
+- **Grafana Dashboard**: [http://localhost:3000](http://localhost:3000)
+- **Prometheus Server**: [http://localhost:9090](http://localhost:9090)
 
 ---
 
@@ -181,4 +241,3 @@ Admin Password : AdminPass123
 <img width="1917" height="927" alt="image" src="https://github.com/user-attachments/assets/a2f331ed-ffd8-4998-9490-7535d72defc6" /> <br/>
 
 <img width="1917" height="925" alt="image" src="https://github.com/user-attachments/assets/578130dd-91d3-456c-acc2-f92d3e152264" /> <br/>
-
