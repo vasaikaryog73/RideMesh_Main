@@ -35,6 +35,41 @@ public class GoogleAuthService {
         this.webClient = WebClient.builder().build();
     }
 
+    @jakarta.annotation.PostConstruct
+    public void init() {
+        if (this.clientId == null || this.clientId.isEmpty() || "your-google-client-id".equals(this.clientId)) {
+            readDotEnvFallback();
+        }
+        log.info("GoogleAuthService initialized with clientId: {}", 
+                (this.clientId != null && this.clientId.length() > 10) ? this.clientId.substring(0, 10) + "..." : this.clientId);
+    }
+
+    private void readDotEnvFallback() {
+        java.io.File[] files = new java.io.File[]{
+            new java.io.File(".env"),
+            new java.io.File("../.env"),
+            new java.io.File("../../.env")
+        };
+        for (java.io.File f : files) {
+            if (f.exists()) {
+                try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(f))) {
+                    String l;
+                    while ((l = br.readLine()) != null) {
+                        l = l.trim();
+                        if (l.startsWith("GOOGLE_CLIENT_ID=")) {
+                            this.clientId = l.substring("GOOGLE_CLIENT_ID=".length()).trim();
+                        } else if (l.startsWith("GOOGLE_CLIENT_SECRET=")) {
+                            this.clientSecret = l.substring("GOOGLE_CLIENT_SECRET=".length()).trim();
+                        } else if (l.startsWith("GOOGLE_REDIRECT_URI=")) {
+                            this.redirectUri = l.substring("GOOGLE_REDIRECT_URI=".length()).trim();
+                        }
+                    }
+                    if (this.clientId != null && !this.clientId.isEmpty()) break;
+                } catch (Exception ignored) {}
+            }
+        }
+    }
+
     public String buildAuthorizationUrl(String overrideRedirectUri) {
         String effectiveRedirect = (overrideRedirectUri != null && !overrideRedirectUri.isEmpty()) 
                 ? overrideRedirectUri : this.redirectUri;

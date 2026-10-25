@@ -35,6 +35,34 @@ public class GeminiLocationClassifierService {
         this.objectMapper = new ObjectMapper();
     }
 
+    @jakarta.annotation.PostConstruct
+    public void init() {
+        if (this.geminiApiKey == null || this.geminiApiKey.isBlank()) {
+            java.io.File[] files = new java.io.File[]{
+                new java.io.File(".env"),
+                new java.io.File("../.env"),
+                new java.io.File("../../.env")
+            };
+            for (java.io.File f : files) {
+                if (f.exists()) {
+                    try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(f))) {
+                        String l;
+                        while ((l = br.readLine()) != null) {
+                            l = l.trim();
+                            if (l.startsWith("GEMINI_API_KEY=")) {
+                                this.geminiApiKey = l.substring("GEMINI_API_KEY=".length()).trim();
+                                break;
+                            }
+                        }
+                        if (this.geminiApiKey != null && !this.geminiApiKey.isBlank()) break;
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        log.info("GeminiLocationClassifierService initialized with key: {}", 
+                (this.geminiApiKey != null && this.geminiApiKey.length() > 6) ? this.geminiApiKey.substring(0, 6) + "..." : "none");
+    }
+
     /**
      * Classifies pickup coordinates (latitude, longitude) into [State, District] in India using Google Gemini API.
      * Returns new String[]{state, district} on success, or null on failure/timeout.
